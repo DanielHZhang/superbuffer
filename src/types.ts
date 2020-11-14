@@ -32,6 +32,9 @@ export type SchemaDefinition<T extends Record<string, any>> = {
   [K in keyof T]: SchemaDefinition<T[K]> | TypedArrayOrSchema;
 };
 
+/**
+ * Extract a Schema type from a Model type.
+ */
 export type ExtractModel<P> = P extends Model<infer T> ? T : never;
 
 export type ByteRef = {position: number};
