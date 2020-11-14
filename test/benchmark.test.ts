@@ -1,6 +1,6 @@
 import {performance} from 'perf_hooks';
 import {Model, uint8, int16, uint16} from '../src/index';
-import {ExtractModel} from '../src/types';
+import type {ExtractModel} from '../src/types';
 
 describe('Benchmark', () => {
   type Player = {id: number; x: number; y: number};
@@ -39,7 +39,6 @@ describe('Benchmark', () => {
 
   it('Should be as performant as possible', () => {
     const iterations = 10000;
-
     const perfStart = performance.now();
 
     for (let i = 0; i < iterations; i++) {
@@ -49,7 +48,7 @@ describe('Benchmark', () => {
 
     const perfEnd = performance.now();
     const delta = perfEnd - perfStart;
-    console.log(`Execution time: ${delta}`);
+    console.log(`Execution time: ${delta.toFixed(3)}ms`);
 
     expect(JSON.stringify(data).length).toBe(JSON.stringify(snap).length);
   });

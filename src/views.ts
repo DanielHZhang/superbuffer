@@ -2,8 +2,36 @@ import type {TypedArrayView} from './types';
 
 // See: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Typed_arrays
 
-// export function same8(digits?: number): number {
-//   return {type: 'Int8Array', bytes: 1, digits: NaN};
+// /**
+//  * -128 to 127 (1 byte)
+//  * @param digits Number of digits to truncate the number and decimal to.
+//  */
+// export function int8(digits?: number): number {
+//   return ({type: 'Int8Array', bytes: 1, digits: digits ?? NaN} as any) as number;
+// }
+
+// /**
+//  * 0 to 255 (1 byte)
+//  * @param digits Number of digits to truncate the number and decimal to.
+//  */
+// export function uint8(digits?: number): number {
+//   return ({type: 'Uint8Array', bytes: 1, digits: digits ?? NaN} as any) as number;
+// }
+
+// /**
+//  * -32768 to 32767 (2 bytes)
+//  * @param digits Number of digits to truncate the number and decimal to.
+//  */
+// export function int16(digits?: number): number {
+//   return ({type: 'Int16Array', bytes: 2, digits: digits ?? NaN} as any) as number;
+// }
+
+// /**
+//  * 0 to 65535 (2 bytes)
+//  * @param digits Number of digits to truncate the number and decimal to.
+//  */
+// export function uint16(digits?: number): number {
+//   return ({type: 'Uint16Array', bytes: 2, digits: digits ?? NaN} as any) as number;
 // }
 
 /** -128 to 127 (1 byte) */

@@ -20,6 +20,8 @@ export type TypedArrayDefinition = {
   length?: number;
 };
 
+// TODO: support [TypedArrayView]
+
 /**
  * A TypedArray, TypedArrayDefinition, or Schema.
  */

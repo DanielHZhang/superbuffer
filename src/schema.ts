@@ -38,10 +38,6 @@ export class Schema<T = Record<string, any>> {
     return this._schemas.get(id);
   }
 
-  // public static Validation(struct: Object) {
-  //   // do all the validation here (as static me)
-  // }
-
   private static newHash<T>(name: string, struct: SchemaDefinition<T>) {
     const hash = stringToHash(JSON.stringify(struct) + name);
     if (hash.length !== 4) {
@@ -65,22 +61,52 @@ export class Schema<T = Record<string, any>> {
     // return reconstructed;
   }
 
-  public deserializeSelfAndChildren(dataView: DataView, byteRef: ByteRef) {
-    const assembled: Record<string, any> = {};
-    for (const key in this._struct) {
-      const value = this._struct[key];
+  private deserializeObject(object: Record<string, any>, dataView: DataView, byteRef: ByteRef) {
+    const assembled: Record<string, any> = {}; // TODO: see if there is a more specific type than this
+    for (const key in object) {
+      const value = object[key];
 
-      // Leaf node
+      // TypedArrayView (leaf)
       if (isTypedArrayView(value)) {
-        const result = this.parseArrayView(value, dataView, byteRef);
-        assembled[key] = result;
+        assembled[key] = this.parseArrayView(value, dataView, byteRef);
+      }
+      // Schema
+      else if (value instanceof Schema) {
+        assembled[key] = value.deserialize(dataView, byteRef);
+
+        const end = next?.startsAt ? next.startsAt - 5 : buffer.byteLength;
+
+        console.log('what is the schema:', schema);
+
+        // bytes is not accurate since it includes child schemas
+        const length = schema.bytes || 1;
+
+        // Determine the number of iterations for an array of items (e.g. 5 objects = 5 iterations)
+        const iterations = Math.floor((end - schema.startsAt!) / length);
       }
       // Array
-      else if() {
+      else if (Array.isArray(value)) {
+        // Struct should only contain single object or schema
+        const def = value[0];
 
+        const result = this.deserializeObject(value[0], dataView, byteRef);
+        // for (let i = 0; i < value.length; i++) {
+        //   // iterate through each array item recursively
+        // }
+      }
+      // Object
+      else if (typeof value === 'object' && Object.prototype === Object.getPrototypeOf(value)) {
+        assembled[key] = this.deserializeObject(value, dataView, byteRef);
+      }
+      // Should be an error, we don't handle this type
+      else {
+        console.error('Unhandled type during deserialization:', value);
       }
     }
+    return assembled;
   }
+
+  public deserialize(dataView: DataView, byteRef: ByteRef): Record<string, any> {}
 
   private parseArrayView({_type, _bytes}: TypedArrayView, dataView: DataView, byteRef: ByteRef) {
     switch (_type) {
@@ -156,36 +182,36 @@ export class Schema<T = Record<string, any>> {
     }
   }
 
-  public deserialize(view: DataView, bytesRef: {bytes: number}): any {
-    const data = {};
-    const bytes = bytesRef.bytes;
+  // public deserialize(view: DataView, bytesRef: {bytes: number}): any {
+  //   const data = {};
+  //   const bytes = bytesRef.bytes;
 
-    for (const key in this._struct) {
-      if (!Object.prototype.hasOwnProperty.call(this._struct, key)) {
-        continue;
-      }
-      const prop = this._struct[key];
-      console.log('prop:', prop);
+  //   for (const key in this._struct) {
+  //     if (!Object.prototype.hasOwnProperty.call(this._struct, key)) {
+  //       continue;
+  //     }
+  //     const prop = this._struct[key];
+  //     console.log('prop:', prop);
 
-      // apply special types options
-      if (digits) {
-        value *= Math.pow(10, -specialTypes.digits);
-        value = parseFloat(value.toFixed(specialTypes.digits));
-      }
+  //     // apply special types options
+  //     if (digits) {
+  //       value *= Math.pow(10, -specialTypes.digits);
+  //       value = parseFloat(value.toFixed(specialTypes.digits));
+  //     }
 
-      // Handle specialTypes (e.g. x: {type: int16, digits: 2})
-      // let specialTypes;
-      // if (prop?.type?._type && prop?.type?._bytes) {
-      //   specialTypes = prop;
-      //   prop._type = prop.type._type;
-      //   prop._bytes = prop.type._bytes;
-      // }
-    }
+  //     // Handle specialTypes (e.g. x: {type: int16, digits: 2})
+  //     // let specialTypes;
+  //     // if (prop?.type?._type && prop?.type?._bytes) {
+  //     //   specialTypes = prop;
+  //     //   prop._type = prop.type._type;
+  //     //   prop._bytes = prop.type._bytes;
+  //     // }
+  //   }
 
-    bytesRef.bytes = bytes;
+  //   bytesRef.bytes = bytes;
 
-    return data;
-  }
+  //   return data;
+  // }
 
   private calcBytes() {
     const iterate = (obj: Record<any, any>) => {

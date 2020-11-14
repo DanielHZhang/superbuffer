@@ -58,11 +58,11 @@ export class Model<T> {
     return accumulator;
   }
 
-  public toBuffer(worldState: T): ArrayBuffer {
+  public toBuffer(object: T): ArrayBuffer {
     this.refresh();
 
     // deep clone the worldState
-    const data = JSON.parse(JSON.stringify(worldState));
+    const data = JSON.parse(JSON.stringify(object));
     const flat = this.flatten(this._schema, data);
     console.log('flattened:', flat);
 
