@@ -220,7 +220,7 @@ export class Model<T> {
 
       console.log('what is the schema:', schema);
 
-      // TOOD(yandeu) bytes is not accurate since it includes child schemas
+      // bytes is not accurate since it includes child schemas
       const length = schema.bytes || 1;
 
       // Determine the number of iterations for an array of items (e.g. 5 objects = 5 iterations)

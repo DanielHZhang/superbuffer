@@ -1,49 +1,26 @@
 {
-  "name": "@supersede/buffer-schema",
-  "version": "1.0.3",
-  "description": "A Schema based Object to Buffer converter",
+  "name": "array-buffer-schema",
+  "version": "0.1.0",
+  "author": "Daniel Zhang",
+  "description": "Convert between objects and ArrayBuffers with ease",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DanielHZhang/array-buffer-schema"
+  },
+  "bugs": {
+    "url": "https://github.com/DanielHZhang/array-buffer-schema/issues"
+  },
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "files": [
     "lib/**/*"
   ],
   "scripts": {
-    "start": "npm run dev",
-    "dev": "npm run build && npm-run-all --parallel dev:*",
-    "dev:tsc": "tsc --watch",
-    "dev:nodemon": "nodemon lib/dev.js --watch lib",
-    "build": "npm run clean && tsc --project tsconfig.prod.json",
-    "bundle": "webpack --config webpack.bundle.js",
-    "test": "jest",
-    "test:coverage": "jest  --collectCoverage",
+    "build": "rimraf lib && tsc --project tsconfig.prod.json",
+    "test": "jest --collectCoverage",
     "test:one": "jest -t",
-    "test:watch": "jest --watch",
-    "clean": "rimraf lib",
-    "format": "prettier --write src/**/*.ts",
-    "prepublishOnly": "npm run build && npm test"
+    "test:watch": "jest --watch"
   },
-  "keywords": [
-    "typed",
-    "array",
-    "buffer",
-    "typedArray",
-    "arrayBuffer",
-    "serialize",
-    "serialization",
-    "schema",
-    "binary"
-  ],
-  "author": "Yannick Deubel (https://github.com/yandeu)",
-  "license": "BSD-3-Clause",
-  "repository": {
-    "type": "git",
-    "url": "git://github.com/geckosio/typed-array-buffer-schema.git"
-  },
-  "bugs": {
-    "url": "https://github.com/geckosio/typed-array-buffer-schema/issues"
-  },
-  "homepage": "http://geckos.io",
-  "dependencies": {},
   "devDependencies": {
     "@supersede/eslint-config": "^1.1.2",
     "@supersede/prettier-config": "^1.0.1",
@@ -55,7 +32,14 @@
     "ts-jest": "^26.4.4",
     "typescript": "^4.0.5"
   },
-  "funding": {
-    "url": "https://github.com/sponsors/yandeu"
-  }
+  "keywords": [
+    "array",
+    "buffer",
+    "typedArray",
+    "arrayBuffer",
+    "serialize",
+    "serialization",
+    "schema",
+    "binary"
+  ]
 }
