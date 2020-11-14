@@ -1,0 +1,24 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Start Server",
+      "console": "integratedTerminal",
+      "env": {
+        "NODE_ENV": "development"
+      },
+      "autoAttachChildProcesses": false,
+      "outputCapture": "std",
+      "program": "${workspaceFolder}/index.js",
+      "request": "launch",
+      "restart": true,
+      "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/nodemon",
+      "skipFiles": [
+        "${workspaceFolder}/node_modules/**",
+        "<node_internals>/**"
+      ],
+      "timeout": 30000,
+      "type": "node",
+    },
+  ]
+}

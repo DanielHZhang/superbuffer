@@ -1,0 +1,237 @@
+/*
+Place your global snippets here. Each snippet is defined under a snippet name and has
+a scope, prefix, body and description. Add comma separated ids of the languages where
+the snippet is applicable in the scope field. If scope is left empty or omitted, the
+snippet gets applied to all languages. The prefix is what is used to trigger the
+snippet and the body will be expanded and inserted. Possible variables are: $1, $2
+for tab stops, $0 for the final cursor position, and ${1:label}, ${2:another} for
+placeholders. Placeholders with the same ids are connected.
+*/
+{
+  "Print to console": {
+    "scope": "javascript,typescript,javascriptreact,typescriptreact",
+    "prefix": "clog",
+    "body": [
+      "console.log($0);",
+    ],
+    "description": "Logs output to console"
+  },
+  "Print here to console": {
+    "scope": "javascript,typescript,javascriptreact,typescriptreact",
+    "prefix": "chere",
+    "body": [
+      "console.log('%cGOES HERE', 'color: red; font-size: 16px;'$0);"
+    ],
+    "description": "Logs output 'Goes here' to console"
+  },
+  "Nexus GraphQL resolver": {
+    "scope": "javascript,typescript",
+    "prefix": "resolver",
+    "body": [
+      "resolve: async (parent, args, ctx, info) => {",
+      "\t$0",
+      "}"
+    ],
+    "description": "Create a nexus GraphQL resolver function skeleton"
+  },
+  "Eslint disable": {
+    "scope": "javascript,typescript,javascriptreact,typescriptreact",
+    "prefix": "eslintdisable",
+    "body": "/* eslint-disable $0 */",
+    "description": "Disable eslint rule for entire file"
+  },
+  "Import react": {
+    "scope": "javascriptreact,typescriptreact",
+    "prefix": "impr",
+    "body": [
+      "import React from 'react';",
+    ],
+    "description": "Imports react into file"
+  },
+  "Emotion JSX pragma": {
+    "scope": "javascriptreact,typescriptreact",
+    "prefix": "jsxprag",
+    "body": [
+      "/** @jsx jsx */",
+      "import {jsx} from '@emotion/react';"
+    ],
+    "description": "Adds emotion import and jsx pragma comment"
+  },
+  "Component did mount": {
+    "scope": "javascriptreact,typescriptreact",
+    "prefix": "cdm",
+    "body": [
+      "componentDidMount() {",
+      "\t$0",
+      "}",
+    ],
+    "description": "Creates the componentDidMount() lifecycle function"
+  },
+  "Component will unmount": {
+    "scope": "javascriptreact,typescriptreact",
+    "prefix": "cwu",
+    "body": [
+      "componentWillUnmount() {",
+      "\t$0",
+      "}",
+    ],
+  },
+  "Should component update": {
+    "scope": "typescriptreact",
+    "prefix": "scu",
+    "body": [
+      "shouldComponentUpdate(nextProps: Props, nextState: State) {",
+      "\t$0",
+      "}"
+    ],
+    "description": "Creates the shouldComponentUpdate() lifecycle function"
+  },
+  "Get derived state": {
+    "scope": "typescriptreact",
+    "prefix": "gdsfp",
+    "body": [
+      "static getDerivedStateFromProps(nextProps: Props, prevState: State): Partial<State> | null {",
+      "\t$0",
+      "}"
+    ],
+    "description": "Creates the getDerivedStateFromProps lifecycle function"
+  },
+  "Component did update": {
+    "scope": "typescriptreact",
+    "prefix": "cdu",
+    "body": [
+      "componentDidUpdate(prevProps: Props, prevState: State) {",
+      "\t$0",
+      "}"
+    ],
+    "description": "Creates the componentDidUpdate() lifecycle function"
+  },
+  "Stateful react component": {
+    "scope": "typescriptreact",
+    "prefix": "reactcomp",
+    "body": [
+      "import React, {Component} from 'react';",
+      "",
+      "type Props = {};",
+      "type State = {};",
+      "",
+      "class ${1:Name} extends Component<Props, State> {",
+      "\tpublic static defaultProps = {};",
+      "",
+      "\tconstructor(props: Props) {",
+      "\t\tsuper(props);",
+      "\t\tthis.state = {};",
+      "\t}",
+      "",
+      "\trender() {",
+      "\t\treturn (",
+      "\t\t\t<div>Component</div>",
+      "\t\t);",
+      "\t}",
+      "}",
+      "",
+      "export default ${1:Name};",
+      "",
+    ],
+    "description": "Creates a stateful React component."
+  },
+  "React stateless component": {
+    "scope": "typescriptreact",
+    "prefix": "reactfunc",
+    "body": [
+      "import React from 'react';",
+      "",
+      "type ${1:Name}Props = {};",
+      "",
+      "const ${1:Name} = (props: Props): JSX.Element => {",
+      "",
+      "\treturn (",
+      "\t\t<div>Component</div>",
+      "\t);",
+      "}",
+      "",
+    ],
+    "description": "Creates a stateless React component."
+  },
+  "React connected component": {
+    "scope": "typescriptreact",
+    "prefix": "reactconnect",
+    "body": [
+      "import React, {Component} from 'react';",
+      "import {bindActionCreators, Dispatch} from 'redux';",
+      "import {connect} from 'react-redux';",
+      "",
+      "type OwnProps = {};",
+      "type StateProps = {};",
+      "type DispatchProps = {};",
+      "type Props = StateProps & DispatchProps & OwnProps;",
+      "type State = {};",
+      "",
+      "class ${1:Name} extends Component<Props, State> {",
+      "\tpublic static defaultProps = {};",
+      "",
+      "\tconstructor(props: Props) {",
+      "\t\tsuper(props);",
+      "\t\tthis.state = {};",
+      "\t}",
+      "",
+      "\trender() {",
+      "\t\treturn (",
+      "\t\t\t<div>Component</div>",
+      "\t\t);",
+      "\t}",
+      "}",
+      "",
+      "function mapStateToProps(state: RootState): StateProps {",
+      "\treturn {};",
+      "}",
+      "",
+      "function mapDispatchToProps(dispatch: Dispatch): DispatchProps {",
+      "\treturn bindActionCreators({}, dispatch);",
+      "}",
+      "",
+      "export default connect<StateProps, DispatchProps>(mapStateToProps, mapDispatchToProps)(${1:Name});",
+      "",
+    ],
+    "description": "Creates a React component connected to Redux"
+  },
+  "Redux reducer": {
+    "scope": "typescriptreact",
+    "prefix": "reduxreducer",
+    "body": [
+      "import {${4:ACTION_TYPE}} from '${3:path}';",
+      "",
+      "export function ${1:name}(state = ${2:type}, action) {",
+      "\tswitch (action.type) {",
+      "\t\tcase ${4:ACTION_TYPE}: {",
+      "\t\t\treturn action.payload;",
+      "\t\t}",
+      "\t\tdefault: {",
+      "\t\t\treturn state;",
+      "\t\t}",
+      "\t}",
+      "}"
+    ],
+    "description": "Creates a Redux reducer"
+  },
+  "Map state to props": {
+    "scope": "typescriptreact",
+    "prefix": "mstp",
+    "body": [
+      "function mapStateToProps({$0}: RootState): StateProps {",
+      "\treturn {};",
+      "}"
+    ],
+    "description": "Creates a mapStateToProps function",
+  },
+  "Map dispatch to props": {
+    "scope": "typescriptreact",
+    "prefix": "mdtp",
+    "body": [
+      "function mapDispatchToProps(dispatch: Dispatch): DispatchProps {",
+      "\treturn bindActionCreators({$0}, dispatch);",
+      "}"
+    ],
+    "description": "Creates a mapDispatchToProps function",
+  }
+}

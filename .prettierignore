@@ -1,0 +1,13 @@
+/.build/**
+/.local/**
+/.next/**
+/build/**
+/coverage/**
+/dist/**
+/docs/**
+/generated/**
+/jsdoc/**
+/lib/**
+/node_modules/**
+/temp/**
+/tmp/**
