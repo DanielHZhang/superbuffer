@@ -239,10 +239,11 @@ export class Schema<T = Record<string, any>> {
 
     const sortedStruct: Record<string, any> = {};
     for (const key of sortedKeys) {
-      if (!isTypedArrayView(struct[key]) && isObject(struct[key])) {
-        sortedStruct[key] = this.sortStruct(struct[key]);
+      const value = struct[key];
+      if (isObject(value) && !isTypedArrayView(value)) {
+        sortedStruct[key] = this.sortStruct(value);
       } else {
-        sortedStruct[key] = struct[key];
+        sortedStruct[key] = value;
       }
     }
     return sortedStruct as T;

@@ -1,6 +1,11 @@
 import {int16, int32, int8, Schema, string16, string8, uint16, uint32, uint8} from '../src';
 
 describe('Schema class', () => {
+  afterEach(() => {
+    // @ts-ignore 2341
+    Schema._schemas.clear();
+  });
+
   it('Should sort properties of the same type alphabetically', () => {
     // Only typed views in schema
     const onlyTypedViews = new Schema('primatives', {
@@ -57,5 +62,24 @@ describe('Schema class', () => {
       b: [nested],
     });
     expect(Object.keys(onlySchemaArrays.struct)).toStrictEqual(['a', 'b', 'c', 'd']);
+  });
+
+  it('Should sort properties of different types in the proper order', () => {
+    const nested = new Schema('nested', {y: uint8, x: uint8});
+    const state = new Schema('state', {
+      e: [nested],
+      b: string8,
+      g: [uint16],
+      a: uint8,
+      f: nested,
+      d: {
+        y: int16,
+        z: int16,
+        x: int16,
+      },
+      c: uint32,
+      h: [string8],
+    });
+    expect(Object.keys(state.struct)).toStrictEqual(['a', 'b', 'c', 'g', 'h', 'd', 'f', 'e']);
   });
 });
