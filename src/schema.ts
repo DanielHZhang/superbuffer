@@ -1,5 +1,5 @@
 import {ByteRef, SchemaDefinition, TypedArrayView} from './types';
-import {isTypedArrayView, stringToHash} from './utils';
+import {isObject, isTypedArrayView, stringToHash} from './utils';
 
 export class Schema<T = Record<string, any>> {
   private static _schemas: Map<string, Schema> = new Map();
@@ -27,10 +27,14 @@ export class Schema<T = Record<string, any>> {
 
   public constructor(name: string, struct: SchemaDefinition<T>) {
     this._name = name;
-    this._struct = struct;
     this._id = Schema.newHash(name, struct);
-    // Schema.Validation(_struct);
+    this._struct = this.sortStruct(struct);
     this.calcBytes();
+
+    if (Schema._schemas.get(this._id)) {
+      throw new Error(`An identical schema definition with the name "${name}" already exists.`);
+    }
+
     Schema._schemas.set(this._id, this);
   }
 
@@ -213,11 +217,70 @@ export class Schema<T = Record<string, any>> {
   //   return data;
   // }
 
+  /**
+   * Sort the schema structure in the following format:
+   * TypedArrayView, TypedArrayView[], Object, Schema, Schema[]
+   */
+  private sortStruct<T extends Record<string, any>>(struct: T): T {
+    // Find the type of each property of the struct
+    const sortedKeys = Object.keys(struct).sort((a, b) => {
+      const indexA = this.getSortCompareIndex(struct[a]);
+      const indexB = this.getSortCompareIndex(struct[b]);
+
+      // Same type, sort alphabetically by key
+      if (indexA === indexB) {
+        return a < b ? -1 : 1;
+      }
+      // Different type, sort by returned index
+      else {
+        return indexA < indexB ? -1 : 1;
+      }
+    });
+
+    const sortedStruct: Record<string, any> = {};
+    for (const key of sortedKeys) {
+      if (!isTypedArrayView(struct[key]) && isObject(struct[key])) {
+        sortedStruct[key] = this.sortStruct(struct[key]);
+      } else {
+        sortedStruct[key] = struct[key];
+      }
+    }
+    return sortedStruct as T;
+  }
+
+  /**
+   * Compare priority in order: TypedArrayView, TypedArrayView[], Object, Schema, Schema[]
+   * @param item Item to determine sort compare priority of.
+   */
+  private getSortCompareIndex(item: any): number {
+    if (isTypedArrayView(item)) {
+      return 0;
+    }
+    if (item instanceof Schema) {
+      return 3;
+    }
+    if (isObject(item)) {
+      return 2;
+    }
+    if (Array.isArray(item)) {
+      if (isTypedArrayView(item[0])) {
+        return 1;
+      }
+      if (item[0] instanceof Schema) {
+        return 4;
+      }
+    }
+    throw new Error(`Unsupported data type: ${Array.isArray(item) ? item[0] : item}`);
+  }
+
+  // todo: fix whatever this function is doing
   private calcBytes() {
     const iterate = (obj: Record<any, any>) => {
       for (const property in obj) {
-        const type = obj?._type || obj?.type?._type;
-        const bytes = obj._bytes || obj.type?._bytes;
+        // if (isTypedArrayView(property)) {
+        // }
+        const type = obj._type;
+        const bytes = obj._bytes;
 
         if (!type && Object.prototype.hasOwnProperty.call(obj, property)) {
           if (typeof obj[property] === 'object') {

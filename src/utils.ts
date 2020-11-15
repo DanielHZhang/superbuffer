@@ -1,6 +1,10 @@
 import {Schema} from './schema';
 import {TypedArrayView} from './types';
 
+export function isObject(obj: any): boolean {
+  return typeof obj === 'object' && Object.getPrototypeOf(obj) === Object.prototype;
+}
+
 /**
  * Implementation of `lodash.set`.
  * @param obj
