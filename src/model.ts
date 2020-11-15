@@ -183,47 +183,17 @@ export class Model<T> {
     this.refresh();
     this.flatten(object, this._schema.struct);
 
-    console.log('what has dataview become:', this._dataView);
-    console.log('what has bytes:', this._bytes);
-
-    return;
+    // console.log('what has dataview become:', this._dataView);
+    // console.log('what has bytes:', this._bytes);
 
     const newBuffer = new ArrayBuffer(this._bytes);
     const view = new DataView(newBuffer);
-
-    // copy all data to a new resized ArrayBuffer
     for (let i = 0; i < this._bytes; i++) {
       view.setUint8(i, this._dataView.getUint8(i));
     }
-
+    // console.log('new buffer', newBuffer);
     return newBuffer;
   }
-
-  private populateData = (obj: any, key: any, value: any, path: string = '', isArray = false) => {
-    if (obj?._id && obj._id === key) {
-      const p = path.replace(/_struct\./, '').replace(/\.$/, '');
-      // if it is a schema[], but only has one set, we manually have to make sure it transforms to an array
-      if (isArray && !Array.isArray(value)) {
-        value = [value];
-      }
-      // '' is the top level
-      if (p === '') {
-        data = {...data, ...value};
-      } else {
-        set(data, p, value);
-      }
-    } else {
-      for (const props in obj) {
-        if (Object.prototype.hasOwnProperty.call(obj, props)) {
-          if (typeof obj[props] === 'object') {
-            const p = Array.isArray(obj) ? '' : `${props}.`;
-            this.populateData(obj[props], key, value, path + p, Array.isArray(obj));
-          }
-          // obj
-        }
-      }
-    }
-  };
 
   public fromBuffer(buffer: ArrayBuffer): T {
     const view = new DataView(buffer);
