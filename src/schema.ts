@@ -27,8 +27,8 @@ export class Schema<T = Record<string, any>> {
 
   public constructor(name: string, struct: SchemaDefinition<T>) {
     this._name = name;
-    this._id = Schema.newHash(name, struct);
-    this._struct = this.sortStruct(struct);
+    this._struct = this.sortDefinitionStruct(struct);
+    this._id = `#${stringToHash(JSON.stringify(this._struct) + this._name)}`;
     this.calcBytes();
 
     if (Schema._schemas.get(this._id)) {
@@ -40,14 +40,6 @@ export class Schema<T = Record<string, any>> {
 
   public static getInstanceById(id: string): Schema | undefined {
     return this._schemas.get(id);
-  }
-
-  private static newHash<T>(name: string, struct: SchemaDefinition<T>) {
-    const hash = stringToHash(JSON.stringify(struct) + name);
-    if (hash.length !== 4) {
-      throw new Error('Hash has not length of 4');
-    }
-    return `#${hash}`;
   }
 
   // in the outer schema, call this to reconstruct all the inner schemas
@@ -216,12 +208,13 @@ export class Schema<T = Record<string, any>> {
 
   //   return data;
   // }
+  // {a: {b: 2}}
 
   /**
    * Sort the schema structure in the following format:
    * TypedArrayView, TypedArrayView[], Object, Schema, Schema[]
    */
-  private sortStruct<T extends Record<string, any>>(struct: T): T {
+  private sortDefinitionStruct<T extends Record<string, any>>(struct: T): T {
     // Find the type of each property of the struct
     const sortedKeys = Object.keys(struct).sort((a, b) => {
       const indexA = this.getSortCompareIndex(struct[a]);
@@ -241,7 +234,7 @@ export class Schema<T = Record<string, any>> {
     for (const key of sortedKeys) {
       const value = struct[key];
       if (isObject(value) && !isTypedArrayView(value)) {
-        sortedStruct[key] = this.sortStruct(value);
+        sortedStruct[key] = this.sortDefinitionStruct(value);
       } else {
         sortedStruct[key] = value;
       }

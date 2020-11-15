@@ -1,6 +1,7 @@
 import {Schema} from './schema';
-import {flatten, set} from './utils';
-import type {SchemaDefinition} from './types';
+import {flatten, isObject, isTypedArrayView, set} from './utils';
+import type {ByteRef, SchemaDefinition, TypedArrayView} from './types';
+import {string8} from './views';
 
 export class Model<T> {
   protected _schema: Schema<T>;
@@ -52,88 +53,140 @@ export class Model<T> {
     return this._schema.id;
   }
 
-  public flatten(schema: Schema<T>, data: any): {d: any; t: string}[] {
-    const accumulator: any[] = [];
-    flatten(schema, data, accumulator);
-    return accumulator;
+  // public flatten(schema: Schema<T>, data: any): {d: any; t: string}[] {
+  //   const accumulator: any[] = [];
+  //   flatten(schema, data, accumulator);
+  //   return accumulator;
+  // }
+
+  public flatten(data: Record<string, any>, struct: Record<string, any>): any {
+    // const flat: {data: any; type: string}[] = [];
+
+    for (const key of Object.keys(struct)) {
+      const dataProp = data[key];
+      const structProp = struct[key];
+      // ArrayView
+      if (isTypedArrayView(structProp)) {
+        this.assign(structProp, dataProp, this._dataView);
+        // flat.push({data: data[key], type: structValue._type});
+      }
+      // Schema
+      else if (structProp instanceof Schema) {
+        this.assign(string8, structProp.id, this._dataView);
+        this.flatten(dataProp, structProp.struct);
+        // flat.push({data: structValue._id, type: 'String8'});
+        // flat.push(...structValue.flatten(value));
+      }
+      // Object
+      else if (isObject(structProp)) {
+        this.assign(string8, '#$obj', this._dataView);
+        this.flatten(dataProp, structProp);
+        // flat.push({data: 'OBJECT', type: 'String8'});
+        // flat.push(...this.flatten(value, structValue));
+      }
+      // Array
+      else if (Array.isArray(structProp)) {
+        const type = structProp[0]; // typedArrayView or schema
+        if (isTypedArrayView(type)) {
+          for (const v of dataProp) {
+            this.assign(type, v, this._dataView);
+            // flat.push({data: v, type: type._type});
+          }
+        } else if (type instanceof Schema) {
+          // console.log('got type:', type, value, structValue);
+          this.assign(string8, type.id, this._dataView);
+          // flat.push({data: type._id, type: 'String8'});
+          for (const v of dataProp) {
+            this.flatten(v, type.struct);
+            // flat.push(...type.flatten(v));
+          }
+        } else {
+          throw new Error('Bad object does not conform to schema');
+        }
+      } else {
+        throw new Error('Bad object does not conform to schema');
+      }
+    }
+    // return flat;
+  }
+
+  private assign(arrayView: TypedArrayView, data: any, dataView: DataView) {
+    switch (arrayView._type) {
+      case 'String8': {
+        for (let j = 0; j < data.length; j++) {
+          dataView.setUint8(this._bytes, (data as string)[j].charCodeAt(0));
+          this._bytes++;
+        }
+        break;
+      }
+      case 'String16': {
+        for (let j = 0; j < data.length; j++) {
+          dataView.setUint16(this._bytes, (data as string)[j].charCodeAt(0));
+          this._bytes += 2;
+        }
+        break;
+      }
+      case 'Int8Array': {
+        dataView.setInt8(this._bytes, data);
+        this._bytes++;
+        break;
+      }
+      case 'Uint8Array': {
+        dataView.setUint8(this._bytes, data);
+        this._bytes++;
+        break;
+      }
+      case 'Int16Array': {
+        dataView.setInt16(this._bytes, data);
+        this._bytes += 2;
+        break;
+      }
+      case 'Uint16Array': {
+        dataView.setUint16(this._bytes, data);
+        this._bytes += 2;
+        break;
+      }
+      case 'Int32Array': {
+        dataView.setInt32(this._bytes, data);
+        this._bytes += 4;
+        break;
+      }
+      case 'Uint32Array': {
+        dataView.setUint32(this._bytes, data);
+        this._bytes += 4;
+        break;
+      }
+      case 'BigInt64Array': {
+        dataView.setBigInt64(this._bytes, BigInt(data));
+        this._bytes += 8;
+        break;
+      }
+      case 'BigUint64Array': {
+        dataView.setBigUint64(this._bytes, BigInt(data));
+        this._bytes += 8;
+        break;
+      }
+      case 'Float32Array': {
+        dataView.setFloat32(this._bytes, data);
+        this._bytes += 4;
+        break;
+      }
+      case 'Float64Array': {
+        dataView.setFloat64(this._bytes, data);
+        this._bytes += 8;
+        break;
+      }
+    }
   }
 
   public toBuffer(object: T): ArrayBuffer {
     this.refresh();
+    this.flatten(object, this._schema.struct);
 
-    // deep clone the worldState
-    const data = JSON.parse(JSON.stringify(object));
-    const flat = this.flatten(this._schema, data);
-    console.log('flattened:', flat);
+    console.log('what has dataview become:', this._dataView);
+    console.log('what has bytes:', this._bytes);
 
-    for (let i = 0; i < flat.length; i++) {
-      const item = flat[i];
-      switch (item.t) {
-        case 'String8': {
-          for (let j = 0; j < item.d.length; j++) {
-            this._dataView.setUint8(this._bytes, (item.d as string)[j].charCodeAt(0));
-            this._bytes++;
-          }
-          continue;
-        }
-        case 'String16': {
-          for (let j = 0; j < item.d.length; j++) {
-            this._dataView.setUint16(this._bytes, (item.d as string)[j].charCodeAt(0));
-            this._bytes += 2;
-          }
-          continue;
-        }
-        case 'Int8Array': {
-          this._dataView.setInt8(this._bytes, item.d);
-          this._bytes++;
-          continue;
-        }
-        case 'Uint8Array': {
-          this._dataView.setUint8(this._bytes, item.d);
-          this._bytes++;
-          continue;
-        }
-        case 'Int16Array': {
-          this._dataView.setInt16(this._bytes, item.d);
-          this._bytes += 2;
-          continue;
-        }
-        case 'Uint16Array': {
-          this._dataView.setUint16(this._bytes, item.d);
-          this._bytes += 2;
-          continue;
-        }
-        case 'Int32Array': {
-          this._dataView.setInt32(this._bytes, item.d);
-          this._bytes += 4;
-          continue;
-        }
-        case 'Uint32Array': {
-          this._dataView.setUint32(this._bytes, item.d);
-          this._bytes += 4;
-          continue;
-        }
-        case 'BigInt64Array': {
-          this._dataView.setBigInt64(this._bytes, BigInt(item.d));
-          this._bytes += 8;
-          continue;
-        }
-        case 'BigUint64Array': {
-          this._dataView.setBigUint64(this._bytes, BigInt(item.d));
-          this._bytes += 8;
-          continue;
-        }
-        case 'Float32Array': {
-          this._dataView.setFloat32(this._bytes, item.d);
-          this._bytes += 4;
-          continue;
-        }
-        case 'Float64Array': {
-          this._dataView.setFloat64(this._bytes, item.d);
-          this._bytes += 8;
-        }
-      }
-    }
+    return;
 
     const newBuffer = new ArrayBuffer(this._bytes);
     const view = new DataView(newBuffer);
