@@ -90,31 +90,4 @@ describe('Schema class', () => {
     }).toThrow();
   });
 
-  it('Should flatten TEMP', () => {
-    const nested = new Schema('nested', {y: uint8, x: uint8});
-    const same = new Schema('wow', {
-      e: [nested],
-      b: string8,
-      g: [uint16],
-      a: uint8,
-      f: nested,
-      d: {
-        y: int16,
-        x: int16,
-      },
-    });
-    const sameModel = new Model(same);
-    sameModel.toBuffer({
-      b: 'wow',
-      e: [{x: 1, y: 1}],
-      g: [1, 2, 3],
-      a: 2,
-      f: {y: 3, x: 3},
-      d: {
-        x: 4,
-        y: 4,
-      },
-    });
-
-  });
 });
