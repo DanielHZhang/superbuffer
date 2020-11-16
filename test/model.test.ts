@@ -28,7 +28,7 @@ describe('Model class', () => {
       },
     });
     const stateModel = new Model(state);
-    stateModel.toBuffer({
+    const buffer = stateModel.toBuffer({
       b: 'wow',
       e: [{x: 1, y: 1}],
       g: [1, 2, 3],
@@ -39,5 +39,6 @@ describe('Model class', () => {
         one: 4,
       },
     });
+    console.log(buffer);
   });
 });

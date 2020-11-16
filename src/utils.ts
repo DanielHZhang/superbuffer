@@ -63,7 +63,7 @@ export function stringToHash(s: string): string {
  * @param str
  * @param length
  */
-function cropString(str: string, length: number) {
+export function cropString(str: string, length: number): string {
   return str.padEnd(length, ' ').slice(0, length);
 }
 

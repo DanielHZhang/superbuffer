@@ -1,5 +1,5 @@
 import {Schema} from './schema';
-import {flatten, isObject, isTypedArrayView, set} from './utils';
+import {cropString, flatten, isObject, isTypedArrayView, set} from './utils';
 import type {ByteRef, SchemaDefinition, TypedArrayView} from './types';
 import {string8} from './views';
 
@@ -219,73 +219,65 @@ export class Model<T> {
     // return flat;
   }
 
-  private assign(arrayView: TypedArrayView, data: any) {
-    switch (arrayView._type) {
-      case 'String8': {
-        for (let j = 0; j < data.length; j++) {
-          this._dataView.setUint8(this._bytes, (data as string)[j].charCodeAt(0));
-          this._bytes++;
+  private assign(arrayView: TypedArrayView, data: string | number) {
+    if (typeof data === 'string') {
+      // Crop strings to default length of 12 characters
+      // const cropped = cropString(data, 12);
+      for (let i = 0; i < data.length; i++) {
+        // String8
+        if (arrayView._type === 'String8') {
+          this._dataView.setUint8(this._bytes, data.charCodeAt(i));
         }
-        break;
-      }
-      case 'String16': {
-        for (let j = 0; j < data.length; j++) {
-          this._dataView.setUint16(this._bytes, (data as string)[j].charCodeAt(0));
-          this._bytes += 2;
+        // String16
+        else {
+          this._dataView.setUint16(this._bytes, data.charCodeAt(i));
         }
-        break;
+        this._bytes += arrayView._bytes;
       }
-      case 'Int8Array': {
-        this._dataView.setInt8(this._bytes, data);
-        // arrayView._bytes;
-        this._bytes++;
-        break;
+    } else {
+      switch (arrayView._type) {
+        case 'Int8Array': {
+          this._dataView.setInt8(this._bytes, data);
+          break;
+        }
+        case 'Uint8Array': {
+          this._dataView.setUint8(this._bytes, data);
+          break;
+        }
+        case 'Int16Array': {
+          this._dataView.setInt16(this._bytes, data);
+          break;
+        }
+        case 'Uint16Array': {
+          this._dataView.setUint16(this._bytes, data);
+          break;
+        }
+        case 'Int32Array': {
+          this._dataView.setInt32(this._bytes, data);
+          break;
+        }
+        case 'Uint32Array': {
+          this._dataView.setUint32(this._bytes, data);
+          break;
+        }
+        case 'BigInt64Array': {
+          this._dataView.setBigInt64(this._bytes, BigInt(data));
+          break;
+        }
+        case 'BigUint64Array': {
+          this._dataView.setBigUint64(this._bytes, BigInt(data));
+          break;
+        }
+        case 'Float32Array': {
+          this._dataView.setFloat32(this._bytes, data);
+          break;
+        }
+        case 'Float64Array': {
+          this._dataView.setFloat64(this._bytes, data);
+          break;
+        }
       }
-      case 'Uint8Array': {
-        this._dataView.setUint8(this._bytes, data);
-        this._bytes++;
-        break;
-      }
-      case 'Int16Array': {
-        this._dataView.setInt16(this._bytes, data);
-        this._bytes += 2;
-        break;
-      }
-      case 'Uint16Array': {
-        this._dataView.setUint16(this._bytes, data);
-        this._bytes += 2;
-        break;
-      }
-      case 'Int32Array': {
-        this._dataView.setInt32(this._bytes, data);
-        this._bytes += 4;
-        break;
-      }
-      case 'Uint32Array': {
-        this._dataView.setUint32(this._bytes, data);
-        this._bytes += 4;
-        break;
-      }
-      case 'BigInt64Array': {
-        this._dataView.setBigInt64(this._bytes, BigInt(data));
-        this._bytes += 8;
-        break;
-      }
-      case 'BigUint64Array': {
-        this._dataView.setBigUint64(this._bytes, BigInt(data));
-        this._bytes += 8;
-        break;
-      }
-      case 'Float32Array': {
-        this._dataView.setFloat32(this._bytes, data);
-        this._bytes += 4;
-        break;
-      }
-      case 'Float64Array': {
-        this._dataView.setFloat64(this._bytes, data);
-        this._bytes += 8;
-        break;
-      }
+      this._bytes += arrayView._bytes; // Increment the bytes
     }
   }
 
