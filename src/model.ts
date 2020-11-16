@@ -60,6 +60,7 @@ export class Model<T extends Record<string, any>> {
 
   public toBuffer(object: T): ArrayBuffer {
     this.refresh();
+    this.appendToDataView(string8, this._schema.id);
     this.serialize(object, this._schema.struct);
 
     // console.log('what has dataview become:', this._dataView);

@@ -214,7 +214,7 @@ export class Schema<T = Record<string, any>> {
    * Sort the schema structure in the following format:
    * TypedArrayView, TypedArrayView[], Object, Schema, Schema[]
    */
-  private sortDefinitionStruct<T extends Record<string, any>>(struct: T): T {
+  protected sortDefinitionStruct<T extends Record<string, any>>(struct: T): T {
     // Find the type of each property of the struct
     const sortedKeys = Object.keys(struct).sort((a, b) => {
       const indexA = this.getSortCompareIndex(struct[a]);
@@ -246,7 +246,7 @@ export class Schema<T = Record<string, any>> {
    * Compare priority in order: TypedArrayView, TypedArrayView[], Object, Schema, Schema[]
    * @param item Item to determine sort compare priority of.
    */
-  private getSortCompareIndex(item: any): number {
+  protected getSortCompareIndex(item: any): number {
     if (isTypedArrayView(item)) {
       return 0;
     }
@@ -268,7 +268,7 @@ export class Schema<T = Record<string, any>> {
   }
 
   // todo: fix whatever this function is doing
-  private calcBytes() {
+  protected calcBytes(): void {
     const iterate = (obj: Record<any, any>) => {
       for (const property in obj) {
         // if (isTypedArrayView(property)) {

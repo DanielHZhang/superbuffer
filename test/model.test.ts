@@ -1,7 +1,24 @@
-import {int16, Model, Schema, string8, uint16, uint8} from '../src';
+import {int16, Model, Schema, string8, TypedArrayView, uint16, uint8} from '../src';
 
 describe('Model class', () => {
-  it('Flattens the object properly', () => {
+  const deserializeString = (
+    dataView: DataView,
+    type: TypedArrayView,
+    start: number,
+    end: number
+  ) => {
+    let str = '';
+    for (let i = 0; i < end - start; i++) {
+      if (type._type === 'String8') {
+        str += String.fromCharCode(dataView.getUint8(start + i));
+      } else {
+        str += String.fromCharCode(dataView.getUint16(start + i));
+      }
+    }
+    return str;
+  };
+
+  it('Flattens the data object properly', () => {
     type Nested = {x: number; y: number};
     type State = {
       e: Nested[];
@@ -39,6 +56,19 @@ describe('Model class', () => {
         one: 4,
       },
     });
-    console.log(buffer);
+    const dataView = new DataView(buffer);
+
+    // Beginning should be root id
+    const rootId = deserializeString(dataView, string8, 0, 5);
+    expect(rootId).toStrictEqual(stateModel.id);
+
+    // First property `a`
+    expect(dataView.getUint8(5)).toStrictEqual(2);
+
+    // Second property `b`
+    const propB = deserializeString(dataView, string8, 6, 9);
+    expect(propB).toStrictEqual('wow');
+
+    // Third property `g`
   });
 });
