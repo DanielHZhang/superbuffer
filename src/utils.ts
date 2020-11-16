@@ -1,7 +1,7 @@
 import {Schema} from './schema';
 import {TypedArrayView} from './types';
 
-export function isObject<T extends Record<any, any>>(obj: any): obj is T  {
+export function isObject<T extends Record<any, any>>(obj: any): obj is T {
   return typeof obj === 'object' && Object.getPrototypeOf(obj) === Object.prototype;
 }
 
@@ -9,41 +9,8 @@ export function isStringOrNumber(value: any): value is string | number {
   return typeof value === 'string' || typeof value === 'number';
 }
 
-/**
- * Implementation of `lodash.set`.
- * @param obj
- * @param path
- * @param value
- */
-export function set(
-  obj: Record<any, any>,
-  path: (string | number)[] | string,
-  value: any
-): Record<any, any> {
-  if (Object(obj) !== obj) {
-    return obj; // When obj is not an object
-  }
-  // If not yet an array, get the keys from the string-path
-  if (!Array.isArray(path)) {
-    path = path.toString().match(/[^.[\]]+/g) || [];
-  }
-
-  let curObj = obj; // Hold reference to the current nested object
-  for (let i = 0; i < path.length - 1; i++) {
-    const curPath = path[i];
-    // Does the key exist and is its value an object?
-    if (Object(curObj[curPath]) !== curObj[curPath]) {
-      // No: create the key. Is the next key a potential array-index?
-      curObj[curPath] =
-        Math.abs(path[i + 1] as number) >> 0 === +path[i + 1]
-          ? [] // Yes: assign a new array object
-          : {}; // No: assign a new plain object
-    }
-    curObj = curObj[curPath];
-  }
-  curObj[path[path.length - 1]] = value; // Finally assign the value to the last key
-
-  return obj; // Return the top-level object to allow chaining
+export function isTypedArrayView(value: any): value is TypedArrayView {
+  return value && typeof value._type === 'string' && typeof value._bytes === 'number';
 }
 
 /**
@@ -69,10 +36,6 @@ export function stringToHash(s: string): string {
  */
 export function cropString(str: string, length: number): string {
   return str.padEnd(length, ' ').slice(0, length);
-}
-
-export function isTypedArrayView(value: any): value is TypedArrayView {
-  return value && typeof value._type === 'string' && typeof value._bytes === 'number';
 }
 
 type Flat = {d: string | number; t: string};

@@ -1,7 +1,7 @@
 import {Schema} from './schema';
-import {cropString, flatten, isObject, isStringOrNumber, isTypedArrayView, set} from './utils';
-import type {ByteRef, SchemaDefinition, TypedArrayView} from './types';
+import {isObject, isStringOrNumber, isTypedArrayView} from './utils';
 import {string8} from './views';
+import type {SchemaDefinition, TypedArrayView} from './types';
 
 export class Model<T extends Record<string, any>> {
   protected _schema: Schema<T>;
