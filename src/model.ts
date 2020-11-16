@@ -1,13 +1,43 @@
 import {Schema} from './schema';
 import {isObject, isStringOrNumber, isTypedArrayView} from './utils';
-import {string8} from './views';
+import {string8, uint8} from './views';
 import type {SchemaDefinition, TypedArrayView} from './types';
 
 export class Model<T extends Record<string, any>> {
-  protected _schema: Schema<T>;
+  /**
+   * Unique identifier denoting the buffer's structure is a flattened hashmap.
+   */
+  public static readonly BUFFER_OBJECT = 1;
+
+  /**
+   * Unique identifier denoting the buffer's structure is an array of flattened hashmaps.
+   */
+  public static readonly BUFFER_ARRAY = 2;
+
+  /**
+   * Max buffer size for a single serialized object of 512 kibibytes.
+   */
+  protected static readonly MAX_BUFFER_SIZE = 512 * 1024;
+
+  /**
+   * Internal ArrayBuffer reference.
+   */
   protected _buffer: ArrayBuffer;
-  protected _dataView: DataView;
+
+  /**
+   * Current byte position in the DataView.
+   */
   protected _bytes: number;
+
+  /**
+   * Internal DataView reference.
+   */
+  protected _dataView: DataView;
+
+  /**
+   * Internal Schema that this model instance is defined by.
+   */
+  protected _schema: Schema<T>;
 
   /**
    * Get the schema definition.
@@ -23,6 +53,10 @@ export class Model<T extends Record<string, any>> {
     return this._schema.id;
   }
 
+  /**
+   * Create a new Model instance with the specified Schema instance.
+   * @param schema Schema instance that this model is defined by.
+   */
   public constructor(schema: Schema<T>) {
     this._bytes = 0;
     this._buffer = new ArrayBuffer(this._bytes);
@@ -58,25 +92,44 @@ export class Model<T extends Record<string, any>> {
     return id;
   }
 
-  public toBuffer(object: T): ArrayBuffer {
+  /**
+   * Serialize an object or an array of objects defined by this Model's schema into an ArrayBuffer.
+   * @param objectOrArray The object or array of objects to be serialized.
+   */
+  public toBuffer(objectOrArray: T | T[]): ArrayBuffer {
     this.refresh();
-    this.appendToDataView(string8, this._schema.id);
-    this.serialize(object, this._schema.struct);
 
-    // console.log('what has dataview become:', this._dataView);
-    // console.log('what has bytes:', this._bytes);
+    // Array
+    if (Array.isArray(objectOrArray)) {
+      this.appendToDataView(uint8, Model.BUFFER_ARRAY);
+      this.appendToDataView(string8, this._schema.id);
+      for (let i = 0; i < objectOrArray.length; i++) {
+        this.serialize(objectOrArray[i], this._schema.struct);
+      }
+    }
+    // Object
+    else {
+      this.appendToDataView(uint8, Model.BUFFER_OBJECT);
+      this.appendToDataView(string8, this._schema.id);
+      this.serialize(objectOrArray, this._schema.struct);
+    }
 
     const newBuffer = new ArrayBuffer(this._bytes);
-    const view = new DataView(newBuffer);
+    const newDataView = new DataView(newBuffer);
     for (let i = 0; i < this._bytes; i++) {
-      view.setUint8(i, this._dataView.getUint8(i));
+      newDataView.setUint8(i, this._dataView.getUint8(i));
     }
-    // console.log('new buffer', newBuffer);
     return newBuffer;
   }
 
-  public fromBuffer(buffer: ArrayBuffer): T {
-    const view = new DataView(buffer);
+  /**
+   * Deserialize an ArrayBuffer to reconstruct the original object or array of objects defined by
+   * the schema of this Model.
+   * @param buffer The ArrayBuffer to be deserialized.
+   * @param expect The expected buffer type (i.e. `Model.BUFFER_OBJECT) for deserialization.
+   */
+  public fromBuffer(buffer: ArrayBuffer, expect?: number): T | T[] {
+    const dataView = new DataView(buffer);
     const int8 = new Int8Array(buffer);
 
     // Find the schema id indexes in the buffer
@@ -139,7 +192,7 @@ export class Model<T extends Record<string, any>> {
       for (let j = 0; j < iterations; j++) {
         bytesRef.bytes = schema.startsAt! + j * length;
 
-        const schemaData = schema.deserialize(view, bytesRef);
+        const schemaData = schema.deserialize(dataView, bytesRef);
 
         if (iterations <= 1) {
           dataPerSchema[schema.id] = {...schemaData};
@@ -287,7 +340,7 @@ export class Model<T extends Record<string, any>> {
    * Refresh this Model's internal buffer and DataView before toBuffer is called.
    */
   protected refresh(): void {
-    this._buffer = new ArrayBuffer(8 * 1024);
+    this._buffer = new ArrayBuffer(Model.MAX_BUFFER_SIZE);
     this._dataView = new DataView(this._buffer);
     this._bytes = 0;
   }
