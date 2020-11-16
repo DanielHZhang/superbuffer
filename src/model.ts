@@ -1,13 +1,27 @@
 import {Schema} from './schema';
-import {cropString, flatten, isObject, isTypedArrayView, set} from './utils';
+import {cropString, flatten, isObject, isStringOrNumber, isTypedArrayView, set} from './utils';
 import type {ByteRef, SchemaDefinition, TypedArrayView} from './types';
 import {string8} from './views';
 
-export class Model<T> {
+export class Model<T extends Record<string, any>> {
   protected _schema: Schema<T>;
   protected _buffer: ArrayBuffer;
   protected _dataView: DataView;
   protected _bytes: number;
+
+  /**
+   * Get the schema definition.
+   */
+  public get schema(): Schema {
+    return this._schema;
+  }
+
+  /**
+   * Get the ID of the schema definition.
+   */
+  public get id(): string {
+    return this._schema.id;
+  }
 
   public constructor(schema: Schema<T>) {
     this._bytes = 0;
@@ -16,6 +30,11 @@ export class Model<T> {
     this._schema = schema;
   }
 
+  /**
+   * Create a Model directly from the provided schema name and definition.
+   * @param name Name of the schema.
+   * @param struct Structure of the schema.
+   */
   public static fromSchemaDefinition<T extends Record<string, any>>(
     name: string,
     struct: SchemaDefinition<T>
@@ -39,29 +58,9 @@ export class Model<T> {
     return id;
   }
 
-  /**
-   * Get the schema definition.
-   */
-  public get schema(): Schema {
-    return this._schema;
-  }
-
-  /**
-   * Get the ID of the schema definition.
-   */
-  public get id(): string {
-    return this._schema.id;
-  }
-
-  // public flatten(schema: Schema<T>, data: any): {d: any; t: string}[] {
-  //   const accumulator: any[] = [];
-  //   flatten(schema, data, accumulator);
-  //   return accumulator;
-  // }
-
   public toBuffer(object: T): ArrayBuffer {
     this.refresh();
-    this.flatten(object, this._schema.struct);
+    this.serialize(object, this._schema.struct);
 
     // console.log('what has dataview become:', this._dataView);
     // console.log('what has bytes:', this._bytes);
@@ -168,58 +167,60 @@ export class Model<T> {
     return data;
   }
 
-  private flatten(data: Record<string, any>, struct: Record<string, any>): any {
-    // const flat: {data: any; type: string}[] = [];
-
+  /**
+   * Serialize data that adheres to the provided object structure.
+   * @param data Data to be serialized.
+   * @param struct SchemaDefinition structure.
+   */
+  protected serialize(
+    data: Record<string, number | string | Record<string, any>>,
+    struct: Record<string, string | number | Record<string, any>>
+  ): void {
     for (const key of Object.keys(struct)) {
-      const dataProp = data[key];
-      const structProp = struct[key];
+      const dataProp = data[key]; // Actual data values
+      const schemaProp = struct[key]; // Corresponds with values from schema
       // ArrayView
-      if (isTypedArrayView(structProp)) {
-        this.assign(structProp, dataProp);
-        // flat.push({data: data[key], type: structValue._type});
+      if (isTypedArrayView(schemaProp) && isStringOrNumber(dataProp)) {
+        this.appendToDataView(schemaProp, dataProp);
       }
       // Schema
-      else if (structProp instanceof Schema) {
-        this.assign(string8, structProp.id);
-        this.flatten(dataProp, structProp.struct);
-        // flat.push({data: structValue._id, type: 'String8'});
-        // flat.push(...structValue.flatten(value));
+      else if (schemaProp instanceof Schema && isObject(dataProp)) {
+        this.appendToDataView(string8, schemaProp.id);
+        this.serialize(dataProp, schemaProp.struct);
       }
       // Object
-      else if (isObject(structProp)) {
-        this.assign(string8, '#$obj');
-        this.flatten(dataProp, structProp);
-        // flat.push({data: 'OBJECT', type: 'String8'});
-        // flat.push(...this.flatten(value, structValue));
+      else if (isObject(schemaProp) && isObject(dataProp)) {
+        this.appendToDataView(string8, '#$obj');
+        this.serialize(dataProp, schemaProp);
       }
       // Array
-      else if (Array.isArray(structProp)) {
-        const type = structProp[0]; // typedArrayView or schema
-        if (isTypedArrayView(type)) {
-          for (const v of dataProp) {
-            this.assign(type, v);
-            // flat.push({data: v, type: type._type});
+      else if (Array.isArray(schemaProp) && Array.isArray(dataProp)) {
+        const firstIndex = schemaProp[0];
+        // Schema
+        if (firstIndex instanceof Schema) {
+          this.appendToDataView(string8, firstIndex.id);
+          for (const dataValue of dataProp) {
+            this.serialize(dataValue, firstIndex.struct);
           }
-        } else if (type instanceof Schema) {
-          // console.log('got type:', type, value, structValue);
-          this.assign(string8, type.id);
-          // flat.push({data: type._id, type: 'String8'});
-          for (const v of dataProp) {
-            this.flatten(v, type.struct);
-            // flat.push(...type.flatten(v));
+        }
+        // TypedArrayView
+        else {
+          for (const dataValue of dataProp) {
+            this.appendToDataView(firstIndex as TypedArrayView, dataValue);
           }
-        } else {
-          throw new Error('Bad object does not conform to schema');
         }
       } else {
         throw new Error('Bad object does not conform to schema');
       }
     }
-    // return flat;
   }
 
-  private assign(arrayView: TypedArrayView, data: string | number) {
+  /**
+   * Append data depending on the TypedArrayView, while incrementing the byte position.
+   * @param arrayView
+   * @param data Data to be appended.
+   */
+  protected appendToDataView(arrayView: TypedArrayView, data: string | number): void {
     if (typeof data === 'string') {
       // Crop strings to default length of 12 characters
       // const cropped = cropString(data, 12);
