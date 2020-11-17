@@ -1,4 +1,4 @@
-import {int16, Model, Schema, string8, TypedArrayView, uint16, uint8} from '../src';
+import {Model, Schema, TypedArrayView, int, string} from '../src';
 
 describe('Model class', () => {
   const deserializeString = (
@@ -32,7 +32,10 @@ describe('Model class', () => {
       };
     };
 
-    const nested = new Schema<Nested>('nested', {y: uint8, x: uint8});
+    const nested = new Schema<Nested>('nested', {
+      y: int(8, {signed: false}),
+      x: int(8, {signed: false}),
+    });
     const state = new Schema<State>('state', {
       e: [nested],
       b: string8,

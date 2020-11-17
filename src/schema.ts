@@ -1,4 +1,4 @@
-import {ByteRef, SchemaDefinition, TypedArrayView} from './types';
+import {BufferView, ByteRef, SchemaDefinition} from './types';
 import {isObject, isTypedArrayView, stringToHash} from './utils';
 
 export class Schema<T = Record<string, any>> {
