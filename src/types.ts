@@ -37,28 +37,11 @@ export type ByteRef = {position: number};
 
 // //////////////////////////////////////////////////
 
-// class Same<T> {
-//   public constructor(private val: T) {}
-//   public wow = (): number => 2;
-// }
-
-function uint<T>(): BufferView<number> {
-  return {_type: 'Uint8', _bytes: 2};
-}
-
-const int: BufferViewFunction<number> = (type) => ({_type: 'Int', _bytes: 2});
-
 // type Samerino<T> = Pick<FullView, ''
 
 export type BufferViewFunction<T> = (type: number) => BufferView<T>;
 
-// type Extracterino<T> = T extends BufferViewFunction<infer U> ? U : never;
-// type D = Extracterino<typeof int>;
-
-const what = {
-  a: int(8),
-  b: int(16),
-};
+type Cool<T> = T extends SchemaDefinition<infer U> ? U : never;
 
 type ExtractWhat<T> = T extends {[K in keyof T]: infer O}
   ? O extends BufferView<infer U> | BufferView<infer U>[]
