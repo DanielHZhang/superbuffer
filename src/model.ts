@@ -128,6 +128,9 @@ export class Model<T extends Record<string, any>> {
    * @param buffer The ArrayBuffer to be deserialized.
    * @param expect The expected buffer type (i.e. `Model.BUFFER_OBJECT) for deserialization.
    */
+  public fromBuffer(buffer: ArrayBuffer, expect: typeof Model.BUFFER_OBJECT): T;
+  public fromBuffer(buffer: ArrayBuffer, expect: typeof Model.BUFFER_ARRAY): T[];
+  public fromBuffer(buffer: ArrayBuffer, expect?: number): T | T[];
   public fromBuffer(buffer: ArrayBuffer, expect?: number): T | T[] {
     const dataView = new DataView(buffer);
     const int8 = new Int8Array(buffer);
