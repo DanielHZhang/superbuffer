@@ -27,7 +27,7 @@ type StringOptions = {
  */
 export const int = (type: 8 | 16 | 32, options?: DigitOption): BufferView<number> => ({
   type: `Int${type}`,
-  bytes: type === 8 ? 1 : type === 16 ? 2 : type === 32 ? 4 : 8,
+  bytes: type === 8 ? 1 : type === 16 ? 2 : 4,
   digits: options?.digits,
 });
 
@@ -42,7 +42,7 @@ export const int = (type: 8 | 16 | 32, options?: DigitOption): BufferView<number
  */
 export const uint = (type: 8 | 16 | 32, options?: DigitOption): BufferView<number> => ({
   type: `Uint${type}`,
-  bytes: type === 8 ? 1 : type === 16 ? 2 : type === 32 ? 4 : 8,
+  bytes: type === 8 ? 1 : type === 16 ? 2 : 4,
   digits: options?.digits,
 });
 
