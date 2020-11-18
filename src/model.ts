@@ -17,7 +17,17 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
   /**
    * Max buffer size for a single serialized object of 512 kibibytes.
    */
-  protected static readonly MAX_BUFFER_SIZE = 512 * 1024;
+  protected static readonly MAX_BUFFER_SIZE = 512 * 1024; // TODO: potentially make adjustable
+
+  /**
+   * Identifier for the start position of serialized objects.
+   */
+  protected static readonly OBJECT_HEADER = '^{}$';
+
+  /**
+   * Identifier for the start position of serialized arrays.
+   */
+  protected static readonly ARRAY_HEADER = '^[]$';
 
   /**
    * Internal ArrayBuffer reference.
@@ -47,7 +57,7 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
   }
 
   /**
-   * Get the ID of the schema definition.
+   * Get the id of the Schema.
    */
   public get id(): string {
     return this._schema.id;
@@ -66,20 +76,18 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
 
   /**
    * Create a Model directly from the provided schema name and definition.
-   * @param name Name of the schema.
+   * @param name Unique name of the schema.
    * @param struct Structure of the schema.
    */
   public static fromSchemaDefinition<T extends Record<string, unknown>>(
     name: string,
     struct: SchemaDefinition<T>
   ): Model<T> {
-    const newSchema = new Schema<T>(name, struct);
-    const newModel = new Model(newSchema);
-    return newModel;
+    return new Model(new Schema<T>(name, struct));
   }
 
   /**
-   * Extract the root model id from the ArrayBuffer.
+   * Extract the root Model id from the ArrayBuffer.
    * @param buffer The ArrayBuffer from which to extract the id.
    */
   public static getIdFromBuffer(buffer: ArrayBuffer): string {
@@ -105,19 +113,20 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
 
     // Array
     if (Array.isArray(objectOrArray)) {
-      this.appendToDataView(uint(8), Model.BUFFER_ARRAY);
-      this.appendToDataView(string(8), this._schema.id);
+      this.appendDataView(uint(8), Model.BUFFER_ARRAY);
+      this.appendDataView(string(8), this._schema.id);
       for (let i = 0; i < objectOrArray.length; i++) {
         this.serialize(objectOrArray[i], this._schema.struct);
       }
     }
     // Object
     else {
-      this.appendToDataView(uint(8), Model.BUFFER_OBJECT);
-      this.appendToDataView(string(8), this._schema.id);
+      this.appendDataView(uint(8), Model.BUFFER_OBJECT);
+      this.appendDataView(string(8), this._schema.id);
       this.serialize(objectOrArray, this._schema.struct);
     }
 
+    // Copy into new buffer
     const newBuffer = new ArrayBuffer(this._bytes);
     const newDataView = new DataView(newBuffer);
     for (let i = 0; i < this._bytes; i++) {
@@ -158,10 +167,28 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
 
     // Handle object
     if (header === Model.BUFFER_OBJECT) {
-      for (const key in this._schema.struct) {
-        const structValue = this._schema.struct[key];
+      const data: Record<string, any> = {};
+      const keys = Object.keys(this._schema.struct);
+      for (let i = 0; i < keys.length; i++) {
+        const structValue = this._schema.struct[keys[i]];
+        // BufferView
         if (isBufferView(structValue)) {
-        } else {
+          // const bytesToRead = structValue.bytes;
+          data[keys[i]] = this.readDataView(dataView, structValue, 0);
+        }
+        // Array
+        else if (Array.isArray(structValue)) {
+          const elementDef = structValue[0];
+
+          if (elementDef instanceof Schema) {
+            //
+          }
+          if (isBufferView(elementDef)) {
+            //
+          }
+        }
+        //
+        else {
           structValue;
         }
       }
@@ -197,7 +224,7 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
     const schemas: Schema[] = [];
     for (let i = 0; i < schemaIds.length; i++) {
       // Ensure that the Schema with the specified id exists in our instance map
-      const schema = Schema.getInstanceById(schemaIds[i]);
+      const schema = Schema.getInstanceByName(schemaIds[i]);
       if (schema) {
         schema.startsAt = idIndexes[i] + 5;
         schemas.push(schema);
@@ -260,32 +287,33 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
       const schemaProp = struct[key]; // Corresponds with values from schema
       // ArrayView
       if (isBufferView(schemaProp) && isStringOrNumber(dataProp)) {
-        this.appendToDataView(schemaProp, dataProp);
+        this.appendDataView(schemaProp, dataProp);
       }
       // Schema
       else if (schemaProp instanceof Schema && isObject(dataProp)) {
-        this.appendToDataView(string(8), schemaProp.id);
+        this.appendDataView(string(8), schemaProp.id); // Serialize schema id before data
         this.serialize(dataProp, schemaProp.struct);
       }
       // Object
       else if (isObject(schemaProp) && isObject(dataProp)) {
-        this.appendToDataView(string(8), '#$obj');
+        this.appendDataView(string(8), Model.OBJECT_HEADER); // Serialize object header before data
         this.serialize(dataProp, schemaProp);
       }
       // Array
       else if (Array.isArray(schemaProp) && Array.isArray(dataProp)) {
-        const firstIndex = schemaProp[0];
+        this.appendDataView(string(8), Model.ARRAY_HEADER); // Serialize array header before data
+        const element = schemaProp[0];
         // Schema
-        if (firstIndex instanceof Schema) {
-          this.appendToDataView(string(8), firstIndex.id);
+        if (element instanceof Schema) {
+          this.appendDataView(string(8), element.id);
           for (const dataValue of dataProp) {
-            this.serialize(dataValue, firstIndex.struct);
+            this.serialize(dataValue, element.struct);
           }
         }
         // BufferView
         else {
           for (const dataValue of dataProp) {
-            this.appendToDataView(firstIndex, dataValue);
+            this.appendDataView(element, dataValue);
           }
         }
       } else {
@@ -295,11 +323,34 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
   }
 
   /**
-   * Append data depending on the BufferView, while incrementing the byte position.
-   * @param bufferView
-   * @param data Data to be appended.
+   * Read the DataView at the specified position according to the BufferView type.
+   * @param dataView DataView to be read.
+   * @param bufferView BufferView to define the type read.
+   * @param position Position in the DataView where to read.
    */
-  protected appendToDataView(bufferView: BufferView<string | number>, data: string | number): void {
+  protected readDataView(
+    dataView: DataView,
+    bufferView: BufferView,
+    position: number
+  ): string | number | bigint {
+    if (bufferView.type === 'String8' || bufferView.type === 'String16') {
+      let value = '';
+      for (let i = 0; i < 12; i++) {
+        value += String.fromCharCode(
+          dataView[`get${bufferView.type === 'String8' ? 'Uint8' : 'Uint16'}` as const](position)
+        );
+      }
+      return value;
+    }
+    return dataView[`get${bufferView.type}` as const](position);
+  }
+
+  /**
+   * Append data to this model's DataView buffer.
+   * @param bufferView BufferView to define the type appended.
+   * @param data Data to be appended to the DataView.
+   */
+  protected appendDataView(bufferView: BufferView<string | number>, data: string | number): void {
     if (bufferView.type === 'String8' || bufferView.type === 'String16') {
       if (typeof data === 'string') {
         // Crop strings to default length of 12 characters

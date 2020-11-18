@@ -2,12 +2,30 @@ import {BufferViewOrSchema, ByteRef, SchemaDefinition} from './types';
 import {isObject, isBufferView, stringToHash} from './utils';
 
 export class Schema<T extends Record<string, unknown> = Record<string, unknown>> {
-  private static readonly _schemas: Map<string, Schema> = new Map();
-  public startsAt?: number;
-  private _bytes: number = 0;
-  private _id: string;
-  private _name: string;
-  private _struct: SchemaDefinition<T>;
+  /**
+   * Map that contains references to all Schema instances.
+   */
+  public static readonly _schemas: Map<string, Schema> = new Map();
+
+  /**
+   * Internal byte position reference.
+   */
+  protected _bytes: number = 0;
+
+  /**
+   * Internal id reference.
+   */
+  protected _id: string;
+
+  /**
+   * Internal name reference.
+   */
+  protected _name: string;
+
+  /**
+   * Internal schema definition reference.
+   */
+  protected _struct: SchemaDefinition<T>;
 
   /**
    * Get the schema id.
@@ -39,20 +57,22 @@ export class Schema<T extends Record<string, unknown> = Record<string, unknown>>
 
   /**
    * Create a new Schema instance with the specified name and structure.
-   * @param name Name of the Schema.
+   * @param name Unique name of the Schema.
    * @param struct SchemaDefinition structure of the Schema.
    */
   public constructor(name: string, struct: SchemaDefinition<T>) {
     this._name = name;
     this._struct = Schema.definition(struct);
-    this._id = `#${stringToHash(JSON.stringify(this._struct) + this._name)}`;
-    this.calcBytes();
+    this._id = `^${Schema._schemas.size.toString().padStart(2, '0')}$`;
 
-    if (Schema._schemas.get(this._id)) {
-      throw new Error(`An identical schema definition with the name "${name}" already exists.`);
+    // Ensure schema with same name does not exist
+    if (Schema._schemas.get(name)) {
+      throw new Error(`A Schema with the name "${name}" already exists.`);
+    } else {
+      Schema._schemas.set(name, this);
     }
 
-    Schema._schemas.set(this._id, this);
+    this.calcBytes();
   }
 
   /**
@@ -64,11 +84,11 @@ export class Schema<T extends Record<string, unknown> = Record<string, unknown>>
   }
 
   /**
-   * Get a Schema instance from the static map by its id.
-   * @param id Id of the Schema instance.
+   * Get a Schema instance from the static map by its name.
+   * @param name Name of the Schema instance.
    */
-  public static getInstanceById(id: string): Schema | undefined {
-    return this._schemas.get(id);
+  public static getInstanceByName(name: string): Schema | undefined {
+    return this._schemas.get(name);
   }
 
   /**
@@ -134,126 +154,126 @@ export class Schema<T extends Record<string, unknown> = Record<string, unknown>>
     );
   }
 
-  private deserializeObject(object: Record<string, any>, dataView: DataView, byteRef: ByteRef) {
-    const assembled: Record<string, any> = {}; // TODO: see if there is a more specific type than this
-    for (const key in object) {
-      const value = object[key];
+  // private deserializeObject(object: Record<string, any>, dataView: DataView, byteRef: ByteRef) {
+  //   const assembled: Record<string, any> = {}; // TODO: see if there is a more specific type than this
+  //   for (const key in object) {
+  //     const value = object[key];
 
-      // BufferView
-      if (isBufferView(value)) {
-        assembled[key] = this.parseArrayView(value, dataView, byteRef);
-      }
-      // Schema
-      else if (value instanceof Schema) {
-        assembled[key] = value.deserialize(dataView, byteRef);
+  //     // BufferView
+  //     if (isBufferView(value)) {
+  //       assembled[key] = this.parseArrayView(value, dataView, byteRef);
+  //     }
+  //     // Schema
+  //     else if (value instanceof Schema) {
+  //       assembled[key] = value.deserialize(dataView, byteRef);
 
-        const end = next?.startsAt ? next.startsAt - 5 : buffer.byteLength;
+  //       const end = next?.startsAt ? next.startsAt - 5 : buffer.byteLength;
 
-        console.log('what is the schema:', schema);
+  //       console.log('what is the schema:', schema);
 
-        // bytes is not accurate since it includes child schemas
-        const length = schema.bytes || 1;
+  //       // bytes is not accurate since it includes child schemas
+  //       const length = schema.bytes || 1;
 
-        // Determine the number of iterations for an array of items (e.g. 5 objects = 5 iterations)
-        const iterations = Math.floor((end - schema.startsAt!) / length);
-      }
-      // Array
-      else if (Array.isArray(value)) {
-        // Struct should only contain single object or schema
-        const def = value[0];
+  //       // Determine the number of iterations for an array of items (e.g. 5 objects = 5 iterations)
+  //       const iterations = Math.floor((end - schema.startsAt!) / length);
+  //     }
+  //     // Array
+  //     else if (Array.isArray(value)) {
+  //       // Struct should only contain single object or schema
+  //       const def = value[0];
 
-        const result = this.deserializeObject(value[0], dataView, byteRef);
-        // for (let i = 0; i < value.length; i++) {
-        //   // iterate through each array item recursively
-        // }
-      }
-      // Object
-      else if (typeof value === 'object' && Object.prototype === Object.getPrototypeOf(value)) {
-        assembled[key] = this.deserializeObject(value, dataView, byteRef);
-      }
-      // Should be an error, we don't handle this type
-      else {
-        console.error('Unhandled type during deserialization:', value);
-      }
-    }
-    return assembled;
-  }
+  //       const result = this.deserializeObject(value[0], dataView, byteRef);
+  //       // for (let i = 0; i < value.length; i++) {
+  //       //   // iterate through each array item recursively
+  //       // }
+  //     }
+  //     // Object
+  //     else if (typeof value === 'object' && Object.prototype === Object.getPrototypeOf(value)) {
+  //       assembled[key] = this.deserializeObject(value, dataView, byteRef);
+  //     }
+  //     // Should be an error, we don't handle this type
+  //     else {
+  //       console.error('Unhandled type during deserialization:', value);
+  //     }
+  //   }
+  //   return assembled;
+  // }
 
-  public deserialize(dataView: DataView, byteRef: ByteRef): Record<string, any> {}
+  // public deserialize(dataView: DataView, byteRef: ByteRef): Record<string, any> {}
 
-  private parseArrayView({_type, _bytes}: TypedArrayView, dataView: DataView, byteRef: ByteRef) {
-    switch (_type) {
-      case 'String8': {
-        let value = '';
-        for (let i = 0; i < 12; i++) {
-          // POTENTIALLY CHANGE THIS TO A ARRAYBUFFER.SLICE
-          const char = String.fromCharCode(dataView.getUint8(byteRef.position));
-          value += char;
-          byteRef.position++;
-        }
-        return value;
-      }
-      case 'String16': {
-        let value = '';
-        for (let i = 0; i < 12; i++) {
-          const char = String.fromCharCode(dataView.getUint16(byteRef.position));
-          value += char;
-          byteRef.position += 2;
-        }
-        return value;
-      }
-      case 'Int8Array': {
-        const value = dataView.getInt8(byteRef.position);
-        byteRef.position += _bytes;
-        return value;
-      }
-      case 'Uint8Array': {
-        const value = dataView.getUint8(byteRef.position);
-        byteRef.position += _bytes;
-        return value;
-      }
-      case 'Int16Array': {
-        const value = dataView.getInt16(byteRef.position);
-        byteRef.position += _bytes;
-        return value;
-      }
-      case 'Uint16Array': {
-        const value = dataView.getUint16(byteRef.position);
-        byteRef.position += _bytes;
-        return value;
-      }
-      case 'Int32Array': {
-        const value = dataView.getInt32(byteRef.position);
-        byteRef.position += _bytes;
-        return value;
-      }
-      case 'Uint32Array': {
-        const value = dataView.getUint32(byteRef.position);
-        byteRef.position += _bytes;
-        return value;
-      }
-      case 'BigInt64Array': {
-        const value = Number(dataView.getBigInt64(byteRef.position));
-        byteRef.position += _bytes;
-        return value;
-      }
-      case 'BigUint64Array': {
-        const value = Number(dataView.getBigUint64(byteRef.position));
-        byteRef.position += _bytes;
-        return value;
-      }
-      case 'Float32Array': {
-        const value = dataView.getFloat32(byteRef.position);
-        byteRef.position += _bytes;
-        return value;
-      }
-      case 'Float64Array': {
-        const value = dataView.getFloat64(byteRef.position);
-        byteRef.position += _bytes;
-        return value;
-      }
-    }
-  }
+  // private parseArrayView({_type, _bytes}: TypedArrayView, dataView: DataView, byteRef: ByteRef) {
+  //   switch (_type) {
+  //     case 'String8': {
+  //       let value = '';
+  //       for (let i = 0; i < 12; i++) {
+  //         // POTENTIALLY CHANGE THIS TO A ARRAYBUFFER.SLICE
+  //         const char = String.fromCharCode(dataView.getUint8(byteRef.position));
+  //         value += char;
+  //         byteRef.position++;
+  //       }
+  //       return value;
+  //     }
+  //     case 'String16': {
+  //       let value = '';
+  //       for (let i = 0; i < 12; i++) {
+  //         const char = String.fromCharCode(dataView.getUint16(byteRef.position));
+  //         value += char;
+  //         byteRef.position += 2;
+  //       }
+  //       return value;
+  //     }
+  //     case 'Int8Array': {
+  //       const value = dataView.getInt8(byteRef.position);
+  //       byteRef.position += _bytes;
+  //       return value;
+  //     }
+  //     case 'Uint8Array': {
+  //       const value = dataView.getUint8(byteRef.position);
+  //       byteRef.position += _bytes;
+  //       return value;
+  //     }
+  //     case 'Int16Array': {
+  //       const value = dataView.getInt16(byteRef.position);
+  //       byteRef.position += _bytes;
+  //       return value;
+  //     }
+  //     case 'Uint16Array': {
+  //       const value = dataView.getUint16(byteRef.position);
+  //       byteRef.position += _bytes;
+  //       return value;
+  //     }
+  //     case 'Int32Array': {
+  //       const value = dataView.getInt32(byteRef.position);
+  //       byteRef.position += _bytes;
+  //       return value;
+  //     }
+  //     case 'Uint32Array': {
+  //       const value = dataView.getUint32(byteRef.position);
+  //       byteRef.position += _bytes;
+  //       return value;
+  //     }
+  //     case 'BigInt64Array': {
+  //       const value = Number(dataView.getBigInt64(byteRef.position));
+  //       byteRef.position += _bytes;
+  //       return value;
+  //     }
+  //     case 'BigUint64Array': {
+  //       const value = Number(dataView.getBigUint64(byteRef.position));
+  //       byteRef.position += _bytes;
+  //       return value;
+  //     }
+  //     case 'Float32Array': {
+  //       const value = dataView.getFloat32(byteRef.position);
+  //       byteRef.position += _bytes;
+  //       return value;
+  //     }
+  //     case 'Float64Array': {
+  //       const value = dataView.getFloat64(byteRef.position);
+  //       byteRef.position += _bytes;
+  //       return value;
+  //     }
+  //   }
+  // }
 
   // public deserialize(view: DataView, bytesRef: {bytes: number}): any {
   //   const data = {};
