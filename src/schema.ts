@@ -27,7 +27,7 @@ export class Schema<T extends Record<string, unknown> = Record<string, unknown>>
 
   public constructor(name: string, struct: SchemaDefinition<T>) {
     this._name = name;
-    this._struct = this.sortDefinitionStruct(struct);
+    this._struct = Schema.definition(struct);
     this._id = `#${stringToHash(JSON.stringify(this._struct) + this._name)}`;
     this.calcBytes();
 
@@ -38,27 +38,83 @@ export class Schema<T extends Record<string, unknown> = Record<string, unknown>>
     Schema._schemas.set(this._id, this);
   }
 
+  /**
+   * Create a SchemaDefinition without creating a Schema instance.
+   * @param obj Object defining the schema.
+   */
   public static definition<T>(obj: SchemaDefinition<T>): SchemaDefinition<T> {
-    return obj;
+    return this.sortAndValidateStruct(obj);
   }
 
+  /**
+   * Get a Schema instance from the static map by its id.
+   * @param id Id of the Schema instance.
+   */
   public static getInstanceById(id: string): Schema | undefined {
     return this._schemas.get(id);
   }
 
-  // in the outer schema, call this to reconstruct all the inner schemas
-  public reconstruct(): any {
-    // const reconstructed = {};
-    // const remaining: any[] = [];
-    // // const keys = Object.keys(this.struct);
-    // remaining.push(...Object.values(this._struct));
-    // for (const key in this._struct) {
-    //   const current = this._struct[key];
-    //   if (isTypedArrayView(current)) {
-    //     reconstructed[key] =
-    //   }
-    // }
-    // return reconstructed;
+  /**
+   * Sort and validate the structure of the SchemaDefinition.
+   * @param struct The SchemaDefinition structure to be sorted.
+   */
+  protected static sortAndValidateStruct<T extends Record<string, any>>(struct: T): T {
+    // Find the type of each property of the struct
+    const sortedKeys = Object.keys(struct).sort((a, b) => {
+      const indexA = this.getSortPriority(struct[a]);
+      const indexB = this.getSortPriority(struct[b]);
+
+      // Same type, sort alphabetically by key
+      if (indexA === indexB) {
+        return a < b ? -1 : 1;
+      }
+      // Different type, sort by returned index
+      else {
+        return indexA < indexB ? -1 : 1;
+      }
+    });
+
+    const sortedStruct: Record<string, any> = {};
+    for (const key of sortedKeys) {
+      const value = struct[key];
+      // Object
+      if (isObject(value) && !isBufferView(value)) {
+        sortedStruct[key] = this.sortAndValidateStruct(value);
+      }
+      // Schema, BufferView, Array
+      else {
+        sortedStruct[key] = value;
+      }
+    }
+    return sortedStruct as T;
+  }
+
+  /**
+   * Returns the priority index of the entity based on its type, in order:
+   * `BufferView`, `BufferView[]`, `Object`, `Schema`, `Schema[]`
+   * @param item Entity to determine sort priority.
+   */
+  protected static getSortPriority(item: BufferViewOrSchema): number {
+    if (isBufferView(item)) {
+      return 0;
+    }
+    if (item instanceof Schema) {
+      return 3;
+    }
+    if (Array.isArray(item)) {
+      if (isBufferView(item[0])) {
+        return 1;
+      }
+      if (item[0] instanceof Schema) {
+        return 4;
+      }
+    }
+    if (isObject(item)) {
+      return 2;
+    }
+    throw new Error(
+      `Unsupported data type in schema definition: ${Array.isArray(item) ? item[0] : item}`
+    );
   }
 
   private deserializeObject(object: Record<string, any>, dataView: DataView, byteRef: ByteRef) {
@@ -213,63 +269,6 @@ export class Schema<T extends Record<string, unknown> = Record<string, unknown>>
   //   return data;
   // }
   // {a: {b: 2}}
-
-  /**
-   * Sort the schema structure in the following format:
-   * TypedArrayView, TypedArrayView[], Object, Schema, Schema[]
-   */
-  protected sortDefinitionStruct<T extends Record<string, any>>(struct: T): T {
-    // Find the type of each property of the struct
-    const sortedKeys = Object.keys(struct).sort((a, b) => {
-      const indexA = this.getSortCompareIndex(struct[a]);
-      const indexB = this.getSortCompareIndex(struct[b]);
-
-      // Same type, sort alphabetically by key
-      if (indexA === indexB) {
-        return a < b ? -1 : 1;
-      }
-      // Different type, sort by returned index
-      else {
-        return indexA < indexB ? -1 : 1;
-      }
-    });
-
-    const sortedStruct: Record<string, any> = {};
-    for (const key of sortedKeys) {
-      const value = struct[key];
-      if (isObject(value) && !isBufferView(value)) {
-        sortedStruct[key] = this.sortDefinitionStruct(value);
-      } else {
-        sortedStruct[key] = value;
-      }
-    }
-    return sortedStruct as T;
-  }
-
-  /**
-   * Compare priority in order: BufferView, BufferView[], Object, Schema, Schema[]
-   * @param item Item to determine sort compare priority of.
-   */
-  protected getSortCompareIndex(item: BufferViewOrSchema): number {
-    if (isBufferView(item)) {
-      return 0;
-    }
-    if (item instanceof Schema) {
-      return 3;
-    }
-    if (isObject(item)) {
-      return 2;
-    }
-    if (Array.isArray(item)) {
-      if (isBufferView(item[0])) {
-        return 1;
-      }
-      if (item[0] instanceof Schema) {
-        return 4;
-      }
-    }
-    throw new Error(`Unsupported data type: ${Array.isArray(item) ? item[0] : item}`);
-  }
 
   // todo: fix whatever this function is doing
   protected calcBytes(): void {

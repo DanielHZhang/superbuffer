@@ -1,5 +1,4 @@
-import {Schema} from './schema';
-import {BufferView} from './types';
+import type {BufferView} from './types';
 
 export function isObject<T extends Record<any, any>>(obj: any): obj is T {
   return typeof obj === 'object' && Object.getPrototypeOf(obj) === Object.prototype;

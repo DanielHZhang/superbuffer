@@ -6,7 +6,7 @@ import type {Schema} from './schema';
 /**
  * Defines a TypedArray within an ArrayBuffer.
  */
-export type BufferView<T extends string | number = string | number> = {
+export type BufferView<T extends string | number | bigint = string | number | bigint> = {
   type: string;
   bytes: number;
   digits?: number;

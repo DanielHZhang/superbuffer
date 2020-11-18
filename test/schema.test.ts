@@ -1,4 +1,4 @@
-import {int16, int32, int8, Model, Schema, string16, string8, uint16, uint32, uint8} from '../src';
+import {bigint, float, int, Schema, string, uint} from '../src';
 
 describe('Schema class', () => {
   afterEach(() => {
@@ -9,9 +9,9 @@ describe('Schema class', () => {
   it('Should sort properties of the same type alphabetically', () => {
     // Only typed views in schema
     const onlyTypedViews = new Schema('primatives', {
-      b: string8,
-      a: uint8,
-      c: uint32,
+      b: string(8),
+      a: uint(8),
+      c: uint(32),
     });
     const keyOrder = Object.keys(onlyTypedViews.struct);
     expect(keyOrder).toStrictEqual(['a', 'b', 'c']);
@@ -19,16 +19,16 @@ describe('Schema class', () => {
     // Only objects in schema
     const onlyObjects = new Schema('objects', {
       c: {
-        f: string16,
+        f: string(16),
       },
       b: {
-        y: int16,
-        z: int16,
-        x: int16,
+        y: int(16),
+        z: int(16),
+        x: int(16),
       },
       a: {
-        e: int32,
-        d: uint8,
+        e: float(32),
+        d: uint(8),
       },
     });
     expect(Object.keys(onlyObjects.struct)).toStrictEqual(['a', 'b', 'c']);
@@ -36,7 +36,7 @@ describe('Schema class', () => {
     expect(Object.keys(onlyObjects.struct.a)).toStrictEqual(['d', 'e']);
 
     // Only nested schemas in schema
-    const nested = new Schema('nested', {y: uint8, x: uint8});
+    const nested = new Schema('nested', {y: uint(8), x: uint(8)});
     const root = new Schema('rootNestedSchemas', {
       d: nested,
       a: nested,
@@ -47,10 +47,10 @@ describe('Schema class', () => {
 
     // Only typed view arrays in schema
     const onlyViewArrays = new Schema('onlyViewArrays', {
-      d: [uint32],
-      a: [int8],
-      c: [uint16],
-      b: [string8],
+      d: [uint(32)],
+      a: [int(8)],
+      c: [uint(16)],
+      b: [string(8)],
     });
     expect(Object.keys(onlyViewArrays.struct)).toStrictEqual(['a', 'b', 'c', 'd']);
 
@@ -65,29 +65,28 @@ describe('Schema class', () => {
   });
 
   it('Should sort properties of different types in the proper order', () => {
-    const nested = new Schema('nested', {y: uint8, x: uint8});
+    const nested = new Schema('nested', {y: uint(8), x: uint(8)});
     const state = new Schema('state', {
       e: [nested],
-      b: string8,
-      g: [uint16],
-      a: uint8,
+      b: string(16),
+      g: [uint(16)],
+      a: uint(8),
       f: nested,
       d: {
-        y: int16,
-        z: int16,
-        x: int16,
+        y: float(64),
+        z: bigint({signed: false}),
+        x: int(16),
       },
-      c: uint32,
-      h: [string8],
+      c: uint(32),
+      h: [string(8)],
     });
     expect(Object.keys(state.struct)).toStrictEqual(['a', 'b', 'c', 'g', 'h', 'd', 'f', 'e']);
   });
 
   it('Should throw when creating identical schemas', () => {
     expect(() => {
-      new Schema('name', {x: uint8, y: int8});
-      new Schema('name', {y: int8, x: uint8});
+      new Schema('name', {x: uint(8), y: int(8)});
+      new Schema('name', {y: int(8), x: uint(8)});
     }).toThrow();
   });
-
 });
