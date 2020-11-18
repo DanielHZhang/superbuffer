@@ -1,4 +1,15 @@
-import {Model, Schema, TypedArrayView, int, string, uint, float} from '../src';
+import {
+  Model,
+  Schema,
+  TypedArrayView,
+  int,
+  string,
+  uint,
+  float,
+  ExtractModelDefinition,
+  ExtractModelObject,
+  SchemaDefinition,
+} from '../src';
 
 describe('Model class', () => {
   const deserializeString = (
@@ -32,11 +43,11 @@ describe('Model class', () => {
       };
     };
 
-    const nested = new Schema<Nested>('nested', {
+    const nested = new Schema('nested', {
       y: uint(8),
       x: uint(8),
     });
-    const state = new Schema<State>('state', {
+    const state = new Schema('state', {
       e: [nested],
       b: string(8),
       g: [uint(16)],
@@ -48,6 +59,21 @@ describe('Model class', () => {
       },
     });
     const stateModel = new Model(state);
+
+    const w = Schema.definition({
+      e: [nested],
+      b: string(8),
+      g: [uint(16)],
+      a: int(8),
+      f: nested,
+      d: {
+        two: float(32),
+        one: int(16),
+      },
+    });
+    type What = ExtractModelDefinition<typeof stateModel>;
+    type Same = ExtractModelObject<typeof stateModel>;
+
     const buffer = stateModel.toBuffer({
       b: 'wow',
       e: [{x: 1, y: 1}],

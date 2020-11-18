@@ -1,7 +1,8 @@
 import {BufferView, ByteRef, SchemaDefinition} from './types';
 import {isObject, isTypedArrayView, stringToHash} from './utils';
+import {uint} from './views';
 
-export class Schema<T = Record<string, any>> {
+export class Schema<T extends Record<string, unknown> = Record<string, unknown>> {
   private static _schemas: Map<string, Schema> = new Map();
   public startsAt?: number;
   private _bytes: number = 0;
@@ -36,6 +37,10 @@ export class Schema<T = Record<string, any>> {
     }
 
     Schema._schemas.set(this._id, this);
+  }
+
+  public static definition<T>(obj: SchemaDefinition<T>): SchemaDefinition<T> {
+    return obj;
   }
 
   public static getInstanceById(id: string): Schema | undefined {

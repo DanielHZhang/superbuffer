@@ -1,9 +1,9 @@
 import {Schema} from './schema';
 import {isObject, isStringOrNumber, isTypedArrayView} from './utils';
-import {string8, uint8} from './views';
-import type {SchemaDefinition, TypedArrayView} from './types';
+import {string, uint} from './views';
+import type {BufferView, SchemaObject, SchemaDefinition} from './types';
 
-export class Model<T extends Record<string, any>> {
+export class Model<T extends Record<string, unknown> = Record<string, unknown>> {
   /**
    * Unique identifier denoting the buffer's structure is a flattened hashmap.
    */
@@ -69,12 +69,12 @@ export class Model<T extends Record<string, any>> {
    * @param name Name of the schema.
    * @param struct Structure of the schema.
    */
-  public static fromSchemaDefinition<T extends Record<string, any>>(
+  public static fromSchemaDefinition<T extends Record<string, unknown>>(
     name: string,
     struct: SchemaDefinition<T>
   ): Model<T> {
-    const newSchema = new Schema(name, struct);
-    const newModel = new Model<T>(newSchema);
+    const newSchema = new Schema<T>(name, struct);
+    const newModel = new Model(newSchema);
     return newModel;
   }
 
@@ -96,7 +96,7 @@ export class Model<T extends Record<string, any>> {
    * Serialize an object or an array of objects defined by this Model's schema into an ArrayBuffer.
    * @param objectOrArray The object or array of objects to be serialized.
    */
-  public toBuffer(objectOrArray: T | T[]): ArrayBuffer {
+  public toBuffer(objectOrArray: SchemaObject<T> /* | Identity<T>[] */): ArrayBuffer {
     this.refresh();
 
     // Array
@@ -273,27 +273,27 @@ export class Model<T extends Record<string, any>> {
   }
 
   /**
-   * Append data depending on the TypedArrayView, while incrementing the byte position.
-   * @param arrayView
+   * Append data depending on the BufferView, while incrementing the byte position.
+   * @param bufferView
    * @param data Data to be appended.
    */
-  protected appendToDataView(arrayView: TypedArrayView, data: string | number): void {
+  protected appendToDataView(bufferView: BufferView<any>, data: string | number): void {
     if (typeof data === 'string') {
       // Crop strings to default length of 12 characters
       // const cropped = cropString(data, 12);
       for (let i = 0; i < data.length; i++) {
         // String8
-        if (arrayView._type === 'String8') {
+        if (bufferView._type === 'String8') {
           this._dataView.setUint8(this._bytes, data.charCodeAt(i));
         }
         // String16
         else {
           this._dataView.setUint16(this._bytes, data.charCodeAt(i));
         }
-        this._bytes += arrayView._bytes;
+        this._bytes += bufferView._bytes;
       }
     } else {
-      switch (arrayView._type) {
+      switch (bufferView._type) {
         case 'Int8Array': {
           this._dataView.setInt8(this._bytes, data);
           break;
@@ -335,7 +335,7 @@ export class Model<T extends Record<string, any>> {
           break;
         }
       }
-      this._bytes += arrayView._bytes; // Increment the bytes
+      this._bytes += bufferView._bytes; // Increment the bytes
     }
   }
 

@@ -3,54 +3,92 @@ import type {Schema} from './schema';
 
 /* eslint-disable @typescript-eslint/consistent-indexed-object-style */
 
-type BaseView = {type: string; bytes: number};
-
 /**
  * Defines a TypedArray within an ArrayBuffer.
  */
-export type BufferView<T> = BaseView &
-  (T extends number | bigint ? {digits?: number} : {length?: number});
-
-// TODO: support [TypedArrayView]
+export type BufferView<T> = {type: string; bytes: number; digits?: number; length?: number};
 
 /**
- * A TypedArray, TypedArrayDefinition, or Schema.
+ * A BufferView, BufferView array, Schema, or Schema array.
  */
-export type TypedArrayOrSchema = BufferView | [BufferView] | Schema | [Schema];
+export type BufferViewOrSchema = BufferView<any> | [BufferView<any>] | Schema | [Schema];
 
 /**
  * Defines a BufferSchema.
  */
-export type SchemaDefinition<T extends Record<string, any>> = {
-  [K in keyof T]: SchemaDefinition<T[K]> | TypedArrayOrSchema;
+export type SchemaDefinition<T> = {
+  [K in keyof T]: T[K] extends BufferViewOrSchema
+    ? T[K]
+    : T[K] extends Record<string, unknown>
+    ? SchemaDefinition<T[K]>
+    : never;
 };
 
 /**
- * Extract a Schema type from a Model type.
+ * Extracts the plain object representation of the schema definition.
  */
-export type ExtractModel<P> = P extends Model<infer U> ? U : never;
+export type SchemaObject<T> = {
+  [K in keyof T]: T[K] extends BufferView<infer U>
+    ? U
+    : T[K] extends BufferView<infer U>[]
+    ? U[]
+    : T[K] extends Schema<infer U>
+    ? SchemaObject<U>
+    : T[K] extends Schema<infer U>[]
+    ? SchemaObject<U>[]
+    : T[K] extends Record<string, unknown>
+    ? SchemaObject<T[K]>
+    : never;
+};
+
+/**
+ * Extract the SchemaDefinition type from a Model.
+ */
+export type ExtractModelDefinition<T> = T extends Model<infer U> ? SchemaDefinition<U> : never;
+
+/**
+ * Extract the SchemaObject type from a Model.
+ */
+export type ExtractModelObject<T> = T extends Model<infer U> ? SchemaObject<U> : never;
 
 /**
  * Byteref
  */
 export type ByteRef = {position: number};
 
-// //////////////////////////////////////////////////
+// function what<T>(obj: SchemaDefinition<T>): ExtractObject<T> {
+//   return;
+// }
+// const same = what({
+//   a: uint(8),
+//   b: [uint(8)],
+//   c: {one: uint(8), two: string(16)},
+//   d: new Schema('same', {x: uint(8)}),
+//   e: [new Schema('wow', {one: uint(8)})],
+// });
+// same.c.one;
+// same.c.two;
+// same.d.x;
+// same.e[0].one;
+// [K in keyof T]: SchemaDefinition<T[K]> | BufferViewOrSchema;
+// [K in keyof T]: T[K] extends ObjectValidator<infer O>
+//   ? SchemaDefinition<O>
+//   : T[K] extends NativeTypeValidator<infer O>
+//   ? O
+//   : T[K] extends object
+//   ? SchemaDefinition<T[K]>
+//   : T[K];
+// [K in keyof T]: T[K] extends BufferViewOrSchema ? string : number;
+// | (T[K] extends SchemaDefinition<infer O> ? SchemaDefinition<T[K]> : BufferViewOrSchema)
+// | BufferViewOrSchema;
 
 // type Samerino<T> = Pick<FullView, ''
 
-export type BufferViewFunction<T> = (type: number) => BufferView<T>;
+// export type BufferViewFunction<T> = (type: number) => BufferView<T>;
 
-type Cool<T> = T extends SchemaDefinition<infer U> ? U : never;
+// type Cool<T> = T extends SchemaDefinition<infer U> ? U : never;
 
-type ExtractWhat<T> = T extends {[K in keyof T]: infer O}
-  ? O extends BufferView<infer U> | BufferView<infer U>[]
-    ? U
-    : O extends Schema<infer U> | Schema<infer U>[]
-    ? U
-    : never
-  : never;
-type R = ExtractWhat<typeof what>;
+// type R = ExtractWhat<typeof what>;
 
 // type ExtractFunc<T> = T extends (...args: any[]) => infer U
 //   ? U extends BufferView<infer V>

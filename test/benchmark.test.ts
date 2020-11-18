@@ -1,23 +1,22 @@
 import {performance} from 'perf_hooks';
 import {Model, uint8, int16, uint16} from '../src/index';
-import type {ExtractModel} from '../src/types';
+import type {ExtractModelDefinition} from '../src/types';
 
 describe('Benchmark', () => {
-  type Player = {id: number; x: number; y: number};
+  // type Player = {id: number; x: number; y: number};
 
-  const playerModel = Model.fromSchemaDefinition<Player>('player', {
+  const playerModel = Model.fromSchemaDefinition('player', {
     id: uint8,
     x: int16,
     y: int16,
   });
 
-  type AlternatePlayer = ExtractModel<typeof playerModel>;
-  type Snapshot = {
-    time: number;
-    data: {players: Player[]};
-  };
+  // type Snapshot = {
+  //   time: number;
+  //   data: {players: Player[]};
+  // };
 
-  const snapshotModel = Model.fromSchemaDefinition<Snapshot>('snapshot', {
+  const snapshotModel = Model.fromSchemaDefinition('snapshot', {
     time: uint16,
     data: {
       players: [playerModel.schema],
