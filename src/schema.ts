@@ -122,7 +122,7 @@ export class Schema<T extends Record<string, unknown> = Record<string, unknown>>
     for (const key in object) {
       const value = object[key];
 
-      // TypedArrayView (leaf)
+      // BufferView
       if (isBufferView(value)) {
         assembled[key] = this.parseArrayView(value, dataView, byteRef);
       }
@@ -274,8 +274,6 @@ export class Schema<T extends Record<string, unknown> = Record<string, unknown>>
   protected calcBytes(): void {
     const iterate = (obj: Record<any, any>) => {
       for (const property in obj) {
-        // if (isTypedArrayView(property)) {
-        // }
         const type = obj._type;
         const bytes = obj._bytes;
 

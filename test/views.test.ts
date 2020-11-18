@@ -1,45 +1,31 @@
-import {
-  Model,
-  int8,
-  uint8,
-  int16,
-  uint16,
-  int32,
-  uint32,
-  int64,
-  uint64,
-  float32,
-  float64,
-  string8,
-  string16,
-} from '../src/index';
-import {Schema} from '../src/schema';
+import {bigint, ExtractModelObject, float, int, Model, Schema, string, uint} from '../src';
 
-describe('TypedArrayView', () => {
-  type Player = typeof snap['players'][number];
-  const playerSchema = new Schema<Player>('player', {
-    a: int8,
-    b: uint8,
-    c: int16,
-    d: uint16,
-    e: int32,
-    f: uint32,
-    g: int64,
-    h: uint64,
-    i: float32,
-    j: float64,
-    k: string8,
-    kk: {type: string8, length: 24},
-    l: string16,
+describe('BufferView', () => {
+  // type Player = typeof snap['players'][number];
+  const playerSchema = new Schema('player', {
+    a: int(8),
+    b: uint(8),
+    c: int(16),
+    d: uint(16),
+    e: int(32),
+    f: uint(32),
+    g: bigint({signed: true}),
+    h: bigint({signed: false}),
+    i: float(32),
+    j: float(64),
+    k: string(8),
+    kk: string(8, {length: 24}),
+    l: string(16),
   });
 
-  type Snapshot = {players: Player[]};
-  const snapshotModel = Model.fromSchemaDefinition<Snapshot>('snapshot', {
+  // type Snapshot = {players: Player[]};
+  const snapshotModel = Model.fromSchemaDefinition('snapshot', {
     players: [playerSchema],
   });
+  type Snapshot = ExtractModelObject<typeof snapshotModel>;
 
   const now = new Date().getTime();
-  const snap = {
+  const snap: Snapshot = {
     players: [
       {
         a: 10,
@@ -48,8 +34,8 @@ describe('TypedArrayView', () => {
         d: 50,
         e: 100,
         f: 100,
-        g: now,
-        h: now,
+        g: BigInt(now),
+        h: BigInt(now),
         i: 1.123456,
         j: 1.123456789,
         k: 'This line is too long.',
@@ -75,62 +61,62 @@ describe('TypedArrayView', () => {
   //   expect(data.players[0].l).toBe('Эта строка с');
   // });
 
-  it('Should serialize and deserialize properly with arrays', () => {
-    const stateSlice = new Schema('slice', {
-      x: uint8,
-      y: uint32,
-    });
+  // it('Should serialize and deserialize properly with arrays', () => {
+  //   const stateSlice = new Schema('slice', {
+  //     x: uint8,
+  //     y: uint32,
+  //   });
 
-    const innerSlice = new Schema('inner', {
-      wow: string16,
-    });
+  //   const innerSlice = new Schema('inner', {
+  //     wow: string16,
+  //   });
 
-    const secondSlice = new Schema('slice2', {
-      a: uint16,
-      b: int8,
-      inner: innerSlice,
-    });
+  //   const secondSlice = new Schema('slice2', {
+  //     a: uint16,
+  //     b: int8,
+  //     inner: innerSlice,
+  //   });
 
-    const test = Model.fromSchemaDefinition('w', {
-      wow: uint8,
-      slices: [stateSlice],
-      secondSlices: {
-        first: [secondSlice],
-        second: uint16,
-      },
-    });
+  //   const test = Model.fromSchemaDefinition('w', {
+  //     wow: uint8,
+  //     slices: [stateSlice],
+  //     secondSlices: {
+  //       first: [secondSlice],
+  //       second: uint16,
+  //     },
+  //   });
 
-    const exampleState = {
-      wow: 20,
-      slices: [
-        {
-          x: 0,
-          y: 1,
-        },
-        {
-          x: 5,
-          y: 6,
-        },
-      ],
-      secondSlices: {
-        first: [
-          {
-            a: 10,
-            b: 2,
-            inner: {
-              wow: 'cool!',
-            },
-          },
-        ],
-        second: 69,
-      },
-    };
+  //   const exampleState = {
+  //     wow: 20,
+  //     slices: [
+  //       {
+  //         x: 0,
+  //         y: 1,
+  //       },
+  //       {
+  //         x: 5,
+  //         y: 6,
+  //       },
+  //     ],
+  //     secondSlices: {
+  //       first: [
+  //         {
+  //           a: 10,
+  //           b: 2,
+  //           inner: {
+  //             wow: 'cool!',
+  //           },
+  //         },
+  //       ],
+  //       second: 69,
+  //     },
+  //   };
 
-    const serialized = test.toBuffer(exampleState);
-    const deserialized = test.fromBuffer(serialized);
+  //   const serialized = test.toBuffer(exampleState);
+  //   const deserialized = test.fromBuffer(serialized);
 
-    // expect().toBe(now);
-  });
+  //   // expect().toBe(now);
+  // });
 });
 
 /*

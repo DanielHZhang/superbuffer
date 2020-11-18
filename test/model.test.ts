@@ -1,7 +1,6 @@
 import {
   Model,
   Schema,
-  TypedArrayView,
   int,
   string,
   uint,
@@ -9,12 +8,13 @@ import {
   ExtractModelDefinition,
   ExtractModelObject,
   SchemaDefinition,
+  BufferView,
 } from '../src';
 
 describe('Model class', () => {
   const deserializeString = (
     dataView: DataView,
-    type: TypedArrayView,
+    type: BufferView,
     start: number,
     end: number
   ) => {

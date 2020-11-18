@@ -1,6 +1,6 @@
 import {Schema} from './schema';
-import {isObject, isStringOrNumber, isBufferView} from './utils';
 import {string, uint} from './views';
+import {isObject, isStringOrNumber, isBufferView} from './utils';
 import type {BufferView, SchemaObject, SchemaDefinition} from './types';
 
 export class Model<T extends Record<string, unknown> = Record<string, unknown>> {
@@ -96,21 +96,21 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
    * Serialize an object or an array of objects defined by this Model's schema into an ArrayBuffer.
    * @param objectOrArray The object or array of objects to be serialized.
    */
-  public toBuffer(objectOrArray: SchemaObject<T> /* | Identity<T>[] */): ArrayBuffer {
+  public toBuffer(objectOrArray: SchemaObject<T> | SchemaObject<T>[]): ArrayBuffer {
     this.refresh();
 
     // Array
     if (Array.isArray(objectOrArray)) {
-      this.appendToDataView(uint8, Model.BUFFER_ARRAY);
-      this.appendToDataView(string8, this._schema.id);
+      this.appendToDataView(uint(8), Model.BUFFER_ARRAY);
+      this.appendToDataView(string(8), this._schema.id);
       for (let i = 0; i < objectOrArray.length; i++) {
         this.serialize(objectOrArray[i], this._schema.struct);
       }
     }
     // Object
     else {
-      this.appendToDataView(uint8, Model.BUFFER_OBJECT);
-      this.appendToDataView(string8, this._schema.id);
+      this.appendToDataView(uint(8), Model.BUFFER_OBJECT);
+      this.appendToDataView(string(8), this._schema.id);
       this.serialize(objectOrArray, this._schema.struct);
     }
 
@@ -230,8 +230,8 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
    * @param struct SchemaDefinition structure.
    */
   protected serialize(
-    data: Record<string, number | string | Record<string, any>>,
-    struct: Record<string, string | number | Record<string, any>>
+    data: Record<string, any>,
+    struct: Record<string, any>
   ): void {
     for (const key of Object.keys(struct)) {
       const dataProp = data[key]; // Actual data values
@@ -242,12 +242,12 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
       }
       // Schema
       else if (schemaProp instanceof Schema && isObject(dataProp)) {
-        this.appendToDataView(string8, schemaProp.id);
+        this.appendToDataView(string(8), schemaProp.id);
         this.serialize(dataProp, schemaProp.struct);
       }
       // Object
       else if (isObject(schemaProp) && isObject(dataProp)) {
-        this.appendToDataView(string8, '#$obj');
+        this.appendToDataView(string(8), '#$obj');
         this.serialize(dataProp, schemaProp);
       }
       // Array
@@ -255,15 +255,15 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
         const firstIndex = schemaProp[0];
         // Schema
         if (firstIndex instanceof Schema) {
-          this.appendToDataView(string8, firstIndex.id);
+          this.appendToDataView(string(8), firstIndex.id);
           for (const dataValue of dataProp) {
             this.serialize(dataValue, firstIndex.struct);
           }
         }
-        // TypedArrayView
+        // BufferView
         else {
           for (const dataValue of dataProp) {
-            this.appendToDataView(firstIndex as TypedArrayView, dataValue);
+            this.appendToDataView(firstIndex, dataValue);
           }
         }
       } else {
