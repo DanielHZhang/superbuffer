@@ -26,7 +26,7 @@ type StringOptions = {
  * @default options.signed false
  */
 export const int = (type: 8 | 16 | 32, options?: DigitOption): BufferView<number> => ({
-  type: `Int${type}`,
+  type: `Int${type}` as const,
   bytes: type === 8 ? 1 : type === 16 ? 2 : 4,
   digits: options?.digits,
 });
@@ -41,7 +41,7 @@ export const int = (type: 8 | 16 | 32, options?: DigitOption): BufferView<number
  * @param options Control whether the int is signed and truncated.
  */
 export const uint = (type: 8 | 16 | 32, options?: DigitOption): BufferView<number> => ({
-  type: `Uint${type}`,
+  type: `Uint${type}` as const,
   bytes: type === 8 ? 1 : type === 16 ? 2 : 4,
   digits: options?.digits,
 });
@@ -54,7 +54,7 @@ export const uint = (type: 8 | 16 | 32, options?: DigitOption): BufferView<numbe
  * @param options Control whether the bigint is signed and truncated.
  */
 export const bigint = (options: DigitOption & SignedOption): BufferView<bigint> => ({
-  type: `Big${options.signed ? 'Int' : 'Uint'}64`,
+  type: `Big${options.signed ? 'Int' : 'Uint'}64` as const,
   bytes: 8,
   digits: options.digits,
 });
@@ -67,7 +67,7 @@ export const bigint = (options: DigitOption & SignedOption): BufferView<bigint> 
  * @param options Control whether the float is truncated.
  */
 export const float = (type: 32 | 64, options?: DigitOption): BufferView<number> => ({
-  type: `Float${type}`,
+  type: `Float${type}` as const,
   bytes: type === 32 ? 4 : 8,
   digits: options?.digits,
 });
@@ -80,7 +80,7 @@ export const float = (type: 32 | 64, options?: DigitOption): BufferView<number> 
  * @param options Control whether the string is truncated.
  */
 export const string = (type: 8 | 16, options?: StringOptions): BufferView<string> => ({
-  type: `String${type}`,
+  type: `String${type}` as const,
   bytes: type === 8 ? 1 : 2,
   length: options?.length,
 });

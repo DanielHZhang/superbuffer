@@ -2,29 +2,46 @@ import {BufferViewOrSchema, ByteRef, SchemaDefinition} from './types';
 import {isObject, isBufferView, stringToHash} from './utils';
 
 export class Schema<T extends Record<string, unknown> = Record<string, unknown>> {
-  private static _schemas: Map<string, Schema> = new Map();
+  private static readonly _schemas: Map<string, Schema> = new Map();
   public startsAt?: number;
   private _bytes: number = 0;
   private _id: string;
   private _name: string;
   private _struct: SchemaDefinition<T>;
 
+  /**
+   * Get the schema id.
+   */
   public get id(): string {
     return this._id;
   }
 
+  /**
+   * Get the schema name.
+   */
   public get name(): string {
     return this._name;
   }
 
+  /**
+   * Get the schema definition.
+   */
   public get struct(): SchemaDefinition<T> {
     return this._struct;
   }
 
+  /**
+   * Get the number of bytes for a serialized object of this schema.
+   */
   public get bytes(): number {
     return this._bytes;
   }
 
+  /**
+   * Create a new Schema instance with the specified name and structure.
+   * @param name Name of the Schema.
+   * @param struct SchemaDefinition structure of the Schema.
+   */
   public constructor(name: string, struct: SchemaDefinition<T>) {
     this._name = name;
     this._struct = Schema.definition(struct);

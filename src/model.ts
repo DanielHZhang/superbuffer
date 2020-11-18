@@ -79,15 +79,19 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
   }
 
   /**
-   * Get a model's ID from an ArrayBuffer.
-   * @param buffer
+   * Extract the root model id from the ArrayBuffer.
+   * @param buffer The ArrayBuffer from which to extract the id.
    */
   public static getIdFromBuffer(buffer: ArrayBuffer): string {
     const dataView = new DataView(buffer);
+    const header = dataView.getUint8(0);
     let id = '';
-    for (let i = 0; i < 5; i++) {
+    for (let i = 1; i < 6; i++) {
       const uInt8 = dataView.getUint8(i);
       id += String.fromCharCode(uInt8);
+    }
+    if (header !== Model.BUFFER_ARRAY && header !== Model.BUFFER_OBJECT && !id.startsWith('#')) {
+      throw new Error('Invalid ArrayBuffer structure.');
     }
     return id;
   }
@@ -128,19 +132,51 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
    * @param buffer The ArrayBuffer to be deserialized.
    * @param expect The expected buffer type (i.e. `Model.BUFFER_OBJECT) for deserialization.
    */
+  public fromBuffer(buffer: ArrayBuffer): T | T[];
   public fromBuffer(buffer: ArrayBuffer, expect: typeof Model.BUFFER_OBJECT): T;
   public fromBuffer(buffer: ArrayBuffer, expect: typeof Model.BUFFER_ARRAY): T[];
-  public fromBuffer(buffer: ArrayBuffer, expect?: number): T | T[];
   public fromBuffer(buffer: ArrayBuffer, expect?: number): T | T[] {
     const dataView = new DataView(buffer);
-    const int8 = new Int8Array(buffer);
+    const int8Array = new Int8Array(buffer);
+
+    // Determine if structure is object or array
+    const header = dataView.getUint8(0);
+    if (expect && expect !== header) {
+      throw new Error(`Expected ArrayBuffer structure ${expect} but got ${header}.`);
+    }
+
+    // Ensure the root model id matches this model
+    let rootId = '';
+    for (let i = 1; i < 6; i++) {
+      rootId += String.fromCharCode(dataView.getUint8(i));
+    }
+    if (rootId !== this._schema.id) {
+      throw new Error(
+        `ArrayBuffer id does not match the id of this model's schema. Expected: ${this._schema.id}, got: ${rootId}`
+      );
+    }
+
+    // Handle object
+    if (header === Model.BUFFER_OBJECT) {
+      for (const key in this._schema.struct) {
+        const structValue = this._schema.struct[key];
+        if (isBufferView(structValue)) {
+        } else {
+          structValue;
+        }
+      }
+    }
+    // Handle array
+    else {
+      //
+    }
 
     // Find the schema id indexes in the buffer
     let index = 0;
     const idIndexes: number[] = [];
 
     while (index > -1) {
-      index = int8.indexOf(35, index); // charCode for '#' is 35
+      index = int8Array.indexOf(35, index); // charCode for '#' is 35
       if (index !== -1) {
         idIndexes.push(index);
         index++;
@@ -151,7 +187,7 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
     const schemaIds = idIndexes.map((index) => {
       let id = '';
       for (let i = 0; i < 5; i++) {
-        const char = String.fromCharCode(int8[index + i]);
+        const char = String.fromCharCode(int8Array[index + i]);
         id += char;
       }
       return id;
@@ -168,7 +204,7 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
       }
     }
 
-    let data: any = {}; // holds all the data we want to give back
+    const data: any = {}; // holds all the data we want to give back
     const bytesRef = {bytes: 0}; // The current byte position of the ArrayBuffer
     const dataPerSchema: any = {};
 
@@ -210,17 +246,6 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
 
     console.log('data:', data);
     console.log('data per schema:', dataPerSchema);
-    return;
-
-    // add dataPerScheme to data
-    data = {};
-
-    for (let i = 0; i < Object.keys(dataPerSchema).length; i++) {
-      const key = Object.keys(dataPerSchema)[i];
-      const value = dataPerSchema[key];
-      this.populateData(this._schema, key, value, '');
-    }
-
     return data;
   }
 
@@ -229,10 +254,7 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
    * @param data Data to be serialized.
    * @param struct SchemaDefinition structure.
    */
-  protected serialize(
-    data: Record<string, any>,
-    struct: Record<string, any>
-  ): void {
+  protected serialize(data: Record<string, any>, struct: Record<string, any>): void {
     for (const key of Object.keys(struct)) {
       const dataProp = data[key]; // Actual data values
       const schemaProp = struct[key]; // Corresponds with values from schema
@@ -277,65 +299,28 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
    * @param bufferView
    * @param data Data to be appended.
    */
-  protected appendToDataView(bufferView: BufferView<any>, data: string | number): void {
-    if (typeof data === 'string') {
-      // Crop strings to default length of 12 characters
-      // const cropped = cropString(data, 12);
-      for (let i = 0; i < data.length; i++) {
-        // String8
-        if (bufferView._type === 'String8') {
-          this._dataView.setUint8(this._bytes, data.charCodeAt(i));
+  protected appendToDataView(bufferView: BufferView<string | number>, data: string | number): void {
+    if (bufferView.type === 'String8' || bufferView.type === 'String16') {
+      if (typeof data === 'string') {
+        // Crop strings to default length of 12 characters
+        // const cropped = cropString(data, 12);
+        for (let i = 0; i < data.length; i++) {
+          this._dataView[`set${bufferView.type === 'String8' ? 'Uint8' : 'Uint16'}` as const](
+            this._bytes,
+            data.charCodeAt(i)
+          );
+          this._bytes += bufferView.bytes;
         }
-        // String16
-        else {
-          this._dataView.setUint16(this._bytes, data.charCodeAt(i));
-        }
-        this._bytes += bufferView._bytes;
       }
     } else {
-      switch (bufferView._type) {
-        case 'Int8Array': {
-          this._dataView.setInt8(this._bytes, data);
-          break;
+      if (typeof data === 'number') {
+        if (bufferView.type === 'BigInt64' || bufferView.type === 'BigUint64') {
+          this._dataView[`set${bufferView.type}` as const](this._bytes, BigInt(data));
+        } else {
+          this._dataView[`set${bufferView.type}` as const](this._bytes, data);
         }
-        case 'Uint8Array': {
-          this._dataView.setUint8(this._bytes, data);
-          break;
-        }
-        case 'Int16Array': {
-          this._dataView.setInt16(this._bytes, data);
-          break;
-        }
-        case 'Uint16Array': {
-          this._dataView.setUint16(this._bytes, data);
-          break;
-        }
-        case 'Int32Array': {
-          this._dataView.setInt32(this._bytes, data);
-          break;
-        }
-        case 'Uint32Array': {
-          this._dataView.setUint32(this._bytes, data);
-          break;
-        }
-        case 'BigInt64Array': {
-          this._dataView.setBigInt64(this._bytes, BigInt(data));
-          break;
-        }
-        case 'BigUint64Array': {
-          this._dataView.setBigUint64(this._bytes, BigInt(data));
-          break;
-        }
-        case 'Float32Array': {
-          this._dataView.setFloat32(this._bytes, data);
-          break;
-        }
-        case 'Float64Array': {
-          this._dataView.setFloat64(this._bytes, data);
-          break;
-        }
+        this._bytes += bufferView.bytes; // Increment the bytes
       }
-      this._bytes += bufferView._bytes; // Increment the bytes
     }
   }
 
