@@ -1,6 +1,5 @@
-import {BufferView, ByteRef, SchemaDefinition} from './types';
-import {isObject, isTypedArrayView, stringToHash} from './utils';
-import {uint} from './views';
+import {BufferViewOrSchema, ByteRef, SchemaDefinition} from './types';
+import {isObject, isBufferView, stringToHash} from './utils';
 
 export class Schema<T extends Record<string, unknown> = Record<string, unknown>> {
   private static _schemas: Map<string, Schema> = new Map();
@@ -68,7 +67,7 @@ export class Schema<T extends Record<string, unknown> = Record<string, unknown>>
       const value = object[key];
 
       // TypedArrayView (leaf)
-      if (isTypedArrayView(value)) {
+      if (isBufferView(value)) {
         assembled[key] = this.parseArrayView(value, dataView, byteRef);
       }
       // Schema
@@ -238,7 +237,7 @@ export class Schema<T extends Record<string, unknown> = Record<string, unknown>>
     const sortedStruct: Record<string, any> = {};
     for (const key of sortedKeys) {
       const value = struct[key];
-      if (isObject(value) && !isTypedArrayView(value)) {
+      if (isObject(value) && !isBufferView(value)) {
         sortedStruct[key] = this.sortDefinitionStruct(value);
       } else {
         sortedStruct[key] = value;
@@ -248,11 +247,11 @@ export class Schema<T extends Record<string, unknown> = Record<string, unknown>>
   }
 
   /**
-   * Compare priority in order: TypedArrayView, TypedArrayView[], Object, Schema, Schema[]
+   * Compare priority in order: BufferView, BufferView[], Object, Schema, Schema[]
    * @param item Item to determine sort compare priority of.
    */
-  protected getSortCompareIndex(item: any): number {
-    if (isTypedArrayView(item)) {
+  protected getSortCompareIndex(item: BufferViewOrSchema): number {
+    if (isBufferView(item)) {
       return 0;
     }
     if (item instanceof Schema) {
@@ -262,7 +261,7 @@ export class Schema<T extends Record<string, unknown> = Record<string, unknown>>
       return 2;
     }
     if (Array.isArray(item)) {
-      if (isTypedArrayView(item[0])) {
+      if (isBufferView(item[0])) {
         return 1;
       }
       if (item[0] instanceof Schema) {

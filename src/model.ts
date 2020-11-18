@@ -1,5 +1,5 @@
 import {Schema} from './schema';
-import {isObject, isStringOrNumber, isTypedArrayView} from './utils';
+import {isObject, isStringOrNumber, isBufferView} from './utils';
 import {string, uint} from './views';
 import type {BufferView, SchemaObject, SchemaDefinition} from './types';
 
@@ -237,7 +237,7 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
       const dataProp = data[key]; // Actual data values
       const schemaProp = struct[key]; // Corresponds with values from schema
       // ArrayView
-      if (isTypedArrayView(schemaProp) && isStringOrNumber(dataProp)) {
+      if (isBufferView(schemaProp) && isStringOrNumber(dataProp)) {
         this.appendToDataView(schemaProp, dataProp);
       }
       // Schema

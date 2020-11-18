@@ -1,5 +1,5 @@
 import {Schema} from './schema';
-import {TypedArrayView} from './types';
+import {BufferView} from './types';
 
 export function isObject<T extends Record<any, any>>(obj: any): obj is T {
   return typeof obj === 'object' && Object.getPrototypeOf(obj) === Object.prototype;
@@ -9,8 +9,8 @@ export function isStringOrNumber(value: any): value is string | number {
   return typeof value === 'string' || typeof value === 'number';
 }
 
-export function isTypedArrayView(value: any): value is TypedArrayView {
-  return value && typeof value._type === 'string' && typeof value._bytes === 'number';
+export function isBufferView(value: any): value is BufferView {
+  return value && typeof value.type === 'string' && typeof value.bytes === 'number';
 }
 
 /**

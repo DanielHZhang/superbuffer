@@ -6,12 +6,17 @@ import type {Schema} from './schema';
 /**
  * Defines a TypedArray within an ArrayBuffer.
  */
-export type BufferView<T> = {type: string; bytes: number; digits?: number; length?: number};
+export type BufferView<T extends string | number = string | number> = {
+  type: string;
+  bytes: number;
+  digits?: number;
+  length?: number;
+};
 
 /**
  * A BufferView, BufferView array, Schema, or Schema array.
  */
-export type BufferViewOrSchema = BufferView<any> | [BufferView<any>] | Schema | [Schema];
+export type BufferViewOrSchema = BufferView | [BufferView] | Schema | [Schema];
 
 /**
  * Defines a BufferSchema.
