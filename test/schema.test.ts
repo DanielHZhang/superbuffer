@@ -83,10 +83,38 @@ describe('Schema class', () => {
     expect(Object.keys(state.struct)).toStrictEqual(['a', 'b', 'c', 'g', 'h', 'd', 'f', 'e']);
   });
 
-  it('Should throw when creating identical schemas', () => {
+  it('Should throw when there are identical names', () => {
     expect(() => {
       new Schema('name', {x: uint(8), y: int(8)});
       new Schema('name', {y: int(8), x: uint(8)});
+    }).toThrow();
+  });
+
+  it('Should throw when there are circular references', () => {
+    expect(() => {
+
+      const first = new Schema('1', {x: uint(8)});
+      const second = new Schema('2', {one: first});
+      const third = new Schema('3', {one: first, two: second});
+      /**
+      third[]
+      ^02$ <- third object id
+      ^{}$ <- index 0 third object starts here
+      ^00$
+      1
+      ^01$
+      ^00$
+      2
+      ,
+      ^{}$ <- index 1 third object starts here
+      ^00$
+      1
+      ^01$
+      ^00$
+      2
+      */
+      // ^[]$
+
     }).toThrow();
   });
 });

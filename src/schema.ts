@@ -15,7 +15,7 @@ export class Schema<T extends Record<string, unknown> = Record<string, unknown>>
   /**
    * Internal id reference.
    */
-  protected _id: string;
+  protected _id: number;
 
   /**
    * Internal name reference.
@@ -30,7 +30,7 @@ export class Schema<T extends Record<string, unknown> = Record<string, unknown>>
   /**
    * Get the schema id.
    */
-  public get id(): string {
+  public get id(): number {
     return this._id;
   }
 
@@ -63,7 +63,9 @@ export class Schema<T extends Record<string, unknown> = Record<string, unknown>>
   public constructor(name: string, struct: SchemaDefinition<T>) {
     this._name = name;
     this._struct = Schema.definition(struct);
-    this._id = `^${Schema._schemas.size.toString().padStart(2, '0')}$`;
+    this._id = Schema._schemas.size;
+
+    this.validateCircularRefs(this._struct);
 
     // Ensure schema with same name does not exist
     if (Schema._schemas.get(name)) {
@@ -80,7 +82,7 @@ export class Schema<T extends Record<string, unknown> = Record<string, unknown>>
    * @param obj Object defining the schema.
    */
   public static definition<T>(obj: SchemaDefinition<T>): SchemaDefinition<T> {
-    return this.sortAndValidateStruct(obj);
+    return this.sortStruct(obj);
   }
 
   /**
@@ -95,7 +97,7 @@ export class Schema<T extends Record<string, unknown> = Record<string, unknown>>
    * Sort and validate the structure of the SchemaDefinition.
    * @param struct The SchemaDefinition structure to be sorted.
    */
-  protected static sortAndValidateStruct<T extends Record<string, any>>(struct: T): T {
+  protected static sortStruct<T extends Record<string, any>>(struct: T): T {
     // Find the type of each property of the struct
     const sortedKeys = Object.keys(struct).sort((a, b) => {
       const indexA = this.getSortPriority(struct[a]);
@@ -116,7 +118,7 @@ export class Schema<T extends Record<string, unknown> = Record<string, unknown>>
       const value = struct[key];
       // Object
       if (isObject(value) && !isBufferView(value)) {
-        sortedStruct[key] = this.sortAndValidateStruct(value);
+        sortedStruct[key] = this.sortStruct(value);
       }
       // Schema, BufferView, Array
       else {
@@ -152,6 +154,28 @@ export class Schema<T extends Record<string, unknown> = Record<string, unknown>>
     throw new Error(
       `Unsupported data type in schema definition: ${Array.isArray(item) ? item[0] : item}`
     );
+  }
+
+  /**
+   * Validate the schema structure to ensure there are no circular references.
+   * @param struct Schema definition structure to be valdiated.
+   */
+  protected validateCircularRefs(struct: Record<string, any>): void {
+    // Ensure no circular schema references
+    for (const key in struct) {
+      let value = struct[key];
+      if (isObject(value)) {
+        this.validateCircularRefs(value);
+      } else if (Array.isArray(value) && value[0] instanceof Schema) {
+        value = value[0];
+      }
+      if (value instanceof Schema) {
+        if (value.id === this._id) {
+          throw new Error('Schema definition contains a circular reference.');
+        }
+        this.validateCircularRefs(value.struct);
+      }
+    }
   }
 
   // private deserializeObject(object: Record<string, any>, dataView: DataView, byteRef: ByteRef) {
@@ -197,82 +221,6 @@ export class Schema<T extends Record<string, unknown> = Record<string, unknown>>
   //     }
   //   }
   //   return assembled;
-  // }
-
-  // public deserialize(dataView: DataView, byteRef: ByteRef): Record<string, any> {}
-
-  // private parseArrayView({_type, _bytes}: TypedArrayView, dataView: DataView, byteRef: ByteRef) {
-  //   switch (_type) {
-  //     case 'String8': {
-  //       let value = '';
-  //       for (let i = 0; i < 12; i++) {
-  //         // POTENTIALLY CHANGE THIS TO A ARRAYBUFFER.SLICE
-  //         const char = String.fromCharCode(dataView.getUint8(byteRef.position));
-  //         value += char;
-  //         byteRef.position++;
-  //       }
-  //       return value;
-  //     }
-  //     case 'String16': {
-  //       let value = '';
-  //       for (let i = 0; i < 12; i++) {
-  //         const char = String.fromCharCode(dataView.getUint16(byteRef.position));
-  //         value += char;
-  //         byteRef.position += 2;
-  //       }
-  //       return value;
-  //     }
-  //     case 'Int8Array': {
-  //       const value = dataView.getInt8(byteRef.position);
-  //       byteRef.position += _bytes;
-  //       return value;
-  //     }
-  //     case 'Uint8Array': {
-  //       const value = dataView.getUint8(byteRef.position);
-  //       byteRef.position += _bytes;
-  //       return value;
-  //     }
-  //     case 'Int16Array': {
-  //       const value = dataView.getInt16(byteRef.position);
-  //       byteRef.position += _bytes;
-  //       return value;
-  //     }
-  //     case 'Uint16Array': {
-  //       const value = dataView.getUint16(byteRef.position);
-  //       byteRef.position += _bytes;
-  //       return value;
-  //     }
-  //     case 'Int32Array': {
-  //       const value = dataView.getInt32(byteRef.position);
-  //       byteRef.position += _bytes;
-  //       return value;
-  //     }
-  //     case 'Uint32Array': {
-  //       const value = dataView.getUint32(byteRef.position);
-  //       byteRef.position += _bytes;
-  //       return value;
-  //     }
-  //     case 'BigInt64Array': {
-  //       const value = Number(dataView.getBigInt64(byteRef.position));
-  //       byteRef.position += _bytes;
-  //       return value;
-  //     }
-  //     case 'BigUint64Array': {
-  //       const value = Number(dataView.getBigUint64(byteRef.position));
-  //       byteRef.position += _bytes;
-  //       return value;
-  //     }
-  //     case 'Float32Array': {
-  //       const value = dataView.getFloat32(byteRef.position);
-  //       byteRef.position += _bytes;
-  //       return value;
-  //     }
-  //     case 'Float64Array': {
-  //       const value = dataView.getFloat64(byteRef.position);
-  //       byteRef.position += _bytes;
-  //       return value;
-  //     }
-  //   }
   // }
 
   // public deserialize(view: DataView, bytesRef: {bytes: number}): any {
