@@ -157,68 +157,20 @@ export class Schema<T extends Record<string, unknown> = Record<string, unknown>>
     );
   }
 
-  // private deserializeObject(object: Record<string, any>, dataView: DataView, byteRef: ByteRef) {
-  //   const assembled: Record<string, any> = {}; // TODO: see if there is a more specific type than this
-  //   for (const key in object) {
-  //     const value = object[key];
-
-  //     // BufferView
-  //     if (isBufferView(value)) {
-  //       assembled[key] = this.parseArrayView(value, dataView, byteRef);
-  //     }
-  //     // Schema
-  //     else if (value instanceof Schema) {
-  //       assembled[key] = value.deserialize(dataView, byteRef);
-
-  //       const end = next?.startsAt ? next.startsAt - 5 : buffer.byteLength;
-
-  //       console.log('what is the schema:', schema);
-
-  //       // bytes is not accurate since it includes child schemas
-  //       const length = schema.bytes || 1;
-
-  //       // Determine the number of iterations for an array of items (e.g. 5 objects = 5 iterations)
-  //       const iterations = Math.floor((end - schema.startsAt!) / length);
-  //     }
-  //     // Array
-  //     else if (Array.isArray(value)) {
-  //       // Struct should only contain single object or schema
-  //       const def = value[0];
-
-  //       const result = this.deserializeObject(value[0], dataView, byteRef);
-  //       // for (let i = 0; i < value.length; i++) {
-  //       //   // iterate through each array item recursively
-  //       // }
-  //     }
-  //     // Object
-  //     else if (typeof value === 'object' && Object.prototype === Object.getPrototypeOf(value)) {
-  //       assembled[key] = this.deserializeObject(value, dataView, byteRef);
-  //     }
-  //     // Should be an error, we don't handle this type
-  //     else {
-  //       console.error('Unhandled type during deserialization:', value);
-  //     }
-  //   }
-  //   return assembled;
-  // }
-
   // public deserialize(view: DataView, bytesRef: {bytes: number}): any {
   //   const data = {};
   //   const bytes = bytesRef.bytes;
-
   //   for (const key in this._struct) {
   //     if (!Object.prototype.hasOwnProperty.call(this._struct, key)) {
   //       continue;
   //     }
   //     const prop = this._struct[key];
   //     console.log('prop:', prop);
-
   //     // apply special types options
   //     if (digits) {
   //       value *= Math.pow(10, -specialTypes.digits);
   //       value = parseFloat(value.toFixed(specialTypes.digits));
   //     }
-
   //     // Handle specialTypes (e.g. x: {type: int16, digits: 2})
   //     // let specialTypes;
   //     // if (prop?.type?._type && prop?.type?._bytes) {
@@ -227,12 +179,9 @@ export class Schema<T extends Record<string, unknown> = Record<string, unknown>>
   //     //   prop._bytes = prop.type._bytes;
   //     // }
   //   }
-
   //   bytesRef.bytes = bytes;
-
   //   return data;
   // }
-  // {a: {b: 2}}
 
   // todo: fix whatever this function is doing
   protected calcBytes(): void {

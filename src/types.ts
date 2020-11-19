@@ -71,8 +71,3 @@ export type ExtractModelDefinition<T> = T extends Model<infer U> ? SchemaDefinit
  * Extract the SchemaObject type from a Model.
  */
 export type ExtractModelObject<T> = T extends Model<infer U> ? SchemaObject<U> : never;
-
-/**
- * Byteref
- */
-export type ByteRef = {position: number};
