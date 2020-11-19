@@ -31,6 +31,10 @@ export const int = (type: 8 | 16 | 32, options?: DigitOption): BufferView<number
   digits: options?.digits,
 });
 
+export const int8 = int(8);
+export const int16 = int(16);
+export const int32 = int(32);
+
 /**
  * Creates a schema representation for an unsigned integer value.\
  * Types of integers:\
@@ -45,6 +49,10 @@ export const uint = (type: 8 | 16 | 32, options?: DigitOption): BufferView<numbe
   bytes: type === 8 ? 1 : type === 16 ? 2 : 4,
   digits: options?.digits,
 });
+
+export const uint8 = uint(8);
+export const uint16 = uint(16);
+export const uint32 = uint(32);
 
 /**
  * Creates a schema representation for a BigInteger value.\
@@ -72,6 +80,9 @@ export const float = (type: 32 | 64, options?: DigitOption): BufferView<number> 
   digits: options?.digits,
 });
 
+export const float32 = float(32);
+export const float64 = float(64);
+
 /**
  * Creates a schema representation for a string value.\
  * Types of strings:\
@@ -84,3 +95,6 @@ export const string = (type: 8 | 16, options?: StringOptions): BufferView<string
   bytes: type === 8 ? 1 : 2,
   length: options?.length,
 });
+
+export const string8 = string(8);
+export const string16 = string(16);

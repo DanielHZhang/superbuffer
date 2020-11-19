@@ -98,6 +98,7 @@ describe('Schema class', () => {
       const third = new Schema('3', {one: first, two: second});
       /**
       third[]
+      ^[]$ <- denote array
       ^02$ <- third object id
       ^{}$ <- index 0 third object starts here
       ^00$

@@ -70,6 +70,9 @@ export class Schema<T extends Record<string, unknown> = Record<string, unknown>>
       throw new Error(`A Schema with the name "${name}" already exists.`);
     } else {
       Schema._schemas.set(name, this);
+      if (Schema._schemas.size > 255) {
+        throw new Error('The maximum number of Schema instances (255) has been reached.');
+      }
     }
 
     this.calcBytes();

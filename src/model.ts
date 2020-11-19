@@ -1,7 +1,7 @@
 import {Schema} from './schema';
 import {string, uint} from './views';
 import {isObject, isStringOrNumber, isBufferView} from './utils';
-import type {BufferView, SchemaObject, SchemaDefinition} from './types';
+import type {BufferView, SchemaObject, SchemaDefinition, Serializable} from './types';
 
 export class Model<T extends Record<string, unknown> = Record<string, unknown>> {
   /**
@@ -20,14 +20,19 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
   protected static readonly MAX_BUFFER_SIZE = 512 * 1024; // TODO: potentially make adjustable
 
   /**
-   * Identifier for the start position of serialized objects.
+   * Identifier for the start position of serialized plain objects.
    */
-  protected static readonly OBJECT_HEADER = '^{}$';
+  protected static readonly OBJECT_HEADER = 61312;
 
   /**
    * Identifier for the start position of serialized arrays.
    */
-  protected static readonly ARRAY_HEADER = '^[]$';
+  protected static readonly ARRAY_HEADER = 48364;
+
+  /**
+   * Identifier for the start position of serialized schema objects.
+   */
+  protected static readonly SCHEMA_HEADER = 46670;
 
   /**
    * Internal ArrayBuffer reference.
@@ -59,7 +64,7 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
   /**
    * Get the id of the Schema.
    */
-  public get id(): string {
+  public get id(): number {
     return this._schema.id;
   }
 
@@ -303,22 +308,24 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
       }
       // Schema
       else if (schemaProp instanceof Schema && isObject(dataProp)) {
-        this.appendDataView(string(8), schemaProp.id); // Serialize schema id before data
+        this.appendDataView(uint(16), Model.SCHEMA_HEADER);
+        this.appendDataView(uint(8), schemaProp.id); // Serialize schema id before data
         this.serialize(dataProp, schemaProp.struct);
       }
       // Object
       else if (isObject(schemaProp) && isObject(dataProp)) {
-        this.appendDataView(string(8), Model.OBJECT_HEADER); // Serialize object header before data
+        this.appendDataView(uint(16), Model.OBJECT_HEADER); // Serialize object header before data
         this.serialize(dataProp, schemaProp);
       }
       // Array
       else if (Array.isArray(schemaProp) && Array.isArray(dataProp)) {
-        this.appendDataView(string(8), Model.ARRAY_HEADER); // Serialize array header before data
+        this.appendDataView(uint(16), Model.ARRAY_HEADER); // Serialize array header before data
         const element = schemaProp[0];
         // Schema
         if (element instanceof Schema) {
-          this.appendDataView(string(8), element.id);
           for (let i = 0; i < dataProp.length; i++) {
+            this.appendDataView(uint(16), Model.SCHEMA_HEADER);
+            this.appendDataView(uint(8), element.id);
             this.serialize(dataProp[i], element.struct);
           }
         }
@@ -344,7 +351,7 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
     dataView: DataView,
     bufferView: BufferView,
     position: number
-  ): string | number | bigint {
+  ): Serializable {
     if (bufferView.type === 'String8' || bufferView.type === 'String16') {
       let value = '';
       for (let i = 0; i < 12; i++) {
@@ -362,7 +369,7 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
    * @param bufferView BufferView to define the type appended.
    * @param data Data to be appended to the DataView.
    */
-  protected appendDataView(bufferView: BufferView<string | number>, data: string | number): void {
+  protected appendDataView<T extends Serializable>(bufferView: BufferView<T>, data: T): void {
     if (bufferView.type === 'String8' || bufferView.type === 'String16') {
       if (typeof data === 'string') {
         // Crop strings to default length of 12 characters

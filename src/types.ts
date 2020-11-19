@@ -3,6 +3,8 @@ import type {Schema} from './schema';
 
 /* eslint-disable @typescript-eslint/consistent-indexed-object-style */
 
+export type Serializable = string | number | bigint;
+
 export type ViewType =
   | 'Uint8'
   | 'Uint16'
@@ -20,11 +22,11 @@ export type ViewType =
 /**
  * Defines a TypedArray within an ArrayBuffer.
  */
-export type BufferView<T extends string | number | bigint = string | number | bigint> = {
-  type: ViewType;
-  bytes: number;
-  digits?: number;
-  length?: number;
+export type BufferView<T extends Serializable = Serializable> = {
+  readonly type: ViewType;
+  readonly bytes: number;
+  readonly digits?: number;
+  readonly length?: number;
 };
 
 /**
