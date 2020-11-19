@@ -65,8 +65,6 @@ export class Schema<T extends Record<string, unknown> = Record<string, unknown>>
     this._struct = Schema.definition(struct);
     this._id = Schema._schemas.size;
 
-    this.validateCircularRefs(this._struct);
-
     // Ensure schema with same name does not exist
     if (Schema._schemas.get(name)) {
       throw new Error(`A Schema with the name "${name}" already exists.`);
@@ -154,28 +152,6 @@ export class Schema<T extends Record<string, unknown> = Record<string, unknown>>
     throw new Error(
       `Unsupported data type in schema definition: ${Array.isArray(item) ? item[0] : item}`
     );
-  }
-
-  /**
-   * Validate the schema structure to ensure there are no circular references.
-   * @param struct Schema definition structure to be valdiated.
-   */
-  protected validateCircularRefs(struct: Record<string, any>): void {
-    // Ensure no circular schema references
-    for (const key in struct) {
-      let value = struct[key];
-      if (isObject(value)) {
-        this.validateCircularRefs(value);
-      } else if (Array.isArray(value) && value[0] instanceof Schema) {
-        value = value[0];
-      }
-      if (value instanceof Schema) {
-        if (value.id === this._id) {
-          throw new Error('Schema definition contains a circular reference.');
-        }
-        this.validateCircularRefs(value.struct);
-      }
-    }
   }
 
   // private deserializeObject(object: Record<string, any>, dataView: DataView, byteRef: ByteRef) {
