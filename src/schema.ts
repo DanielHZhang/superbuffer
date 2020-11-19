@@ -1,5 +1,5 @@
-import {BufferViewOrSchema, ByteRef, SchemaDefinition} from './types';
-import {isObject, isBufferView, stringToHash} from './utils';
+import {BufferViewOrSchema, SchemaDefinition} from './types';
+import {isObject, isBufferView} from './utils';
 
 export class Schema<T extends Record<string, unknown> = Record<string, unknown>> {
   /**

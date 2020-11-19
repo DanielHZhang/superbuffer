@@ -149,86 +149,24 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
     const int8Array = new Int8Array(buffer);
 
     // Determine if structure is object or array
-    const header = dataView.getUint8(0);
+    const header = int8Array[0];
     if (expect && expect !== header) {
       throw new Error(`Expected ArrayBuffer structure ${expect} but got ${header}.`);
     }
 
     // Ensure the root model id matches this model
-    let rootId = '';
-    for (let i = 1; i < 6; i++) {
-      rootId += String.fromCharCode(dataView.getUint8(i));
-    }
-    if (rootId !== this._schema.id) {
-      throw new Error(
-        `ArrayBuffer id does not match the id of this model's schema. Expected: ${this._schema.id}, got: ${rootId}`
-      );
+    if (this.readHeaderId(int8Array, 1) !== this._schema.id) {
+      throw new Error("ArrayBuffer id does not match the id of this model's schema.");
     }
 
     // Handle object
     if (header === Model.BUFFER_OBJECT) {
-      const data: Record<string, any> = {};
-      const keys = Object.keys(this._schema.struct);
-      for (let i = 0; i < keys.length; i++) {
-        const structValue = this._schema.struct[keys[i]];
-        // BufferView
-        if (isBufferView(structValue)) {
-          // const bytesToRead = structValue.bytes;
-          data[keys[i]] = this.readDataView(dataView, structValue, 0);
-        }
-        // Array
-        else if (Array.isArray(structValue)) {
-          const elementDef = structValue[0];
-
-          if (elementDef instanceof Schema) {
-            //
-          }
-          if (isBufferView(elementDef)) {
-            //
-          }
-        }
-        //
-        else {
-          structValue;
-        }
-      }
+      // Start at position after the root id
+      this.deserialize(this._schema.struct, dataView, int8Array, 5);
     }
     // Handle array
     else {
       //
-    }
-
-    // Find the schema id indexes in the buffer
-    let index = 0;
-    const idIndexes: number[] = [];
-
-    while (index > -1) {
-      index = int8Array.indexOf(35, index); // charCode for '#' is 35
-      if (index !== -1) {
-        idIndexes.push(index);
-        index++;
-      }
-    }
-
-    // Read the buffer at the indexes to get the schema ids
-    const schemaIds = idIndexes.map((index) => {
-      let id = '';
-      for (let i = 0; i < 5; i++) {
-        const char = String.fromCharCode(int8Array[index + i]);
-        id += char;
-      }
-      return id;
-    });
-
-    // Assemble schema information
-    const schemas: Schema[] = [];
-    for (let i = 0; i < schemaIds.length; i++) {
-      // Ensure that the Schema with the specified id exists in our instance map
-      const schema = Schema.getInstanceByName(schemaIds[i]);
-      if (schema) {
-        schema.startsAt = idIndexes[i] + 5;
-        schemas.push(schema);
-      }
     }
 
     const data: any = {}; // holds all the data we want to give back
@@ -271,9 +209,83 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
       }
     }
 
-    console.log('data:', data);
-    console.log('data per schema:', dataPerSchema);
     return data;
+  }
+
+  protected deserialize(
+    struct: Record<string, any>,
+    dataView: DataView,
+    int8Array: Int8Array,
+    startPosition: number
+  ): {data: Record<string, any>; position: number} {
+    const data: Record<string, any> = {};
+    const keys = Object.keys(struct);
+    let position = startPosition;
+
+    for (let i = 0; i < keys.length; i++) {
+      const structValue = struct[keys[i]];
+      // BufferView definition
+      if (isBufferView(structValue)) {
+        // const bytesToRead = structValue.bytes;
+        data[keys[i]] = this.readDataView(dataView, structValue, position);
+        position += structValue.bytes;
+      }
+      // Array definition
+      else if (Array.isArray(structValue)) {
+        // Determine if there is anything after this array in the buffer
+        // Header identifier starts with ^, which is char code 94.
+        let next = int8Array.indexOf(94, position);
+        if (next < 0) {
+          // End of buffer
+          next = int8Array.byteLength;
+        }
+
+        // Confirm there is an array at the current position
+        if (this.readHeaderId(int8Array, position) !== Model.ARRAY_HEADER) {
+          throw new Error(`Expected array header at position ${position}`);
+        }
+        position += 4;
+
+        const element = structValue[0];
+        const result = [];
+        if (element instanceof Schema) {
+          // const result: SchemaObject<any>[] = [];
+          while (position < next) {
+            const complete = this.deserialize(element.struct, dataView, int8Array, position);
+          }
+
+          // Read the schema id
+        } else if (isBufferView(element)) {
+          // const result: (number | string | bigint)[] = [];
+          for (let i = position; i < next; i++) {
+            result.push(this.readDataView(dataView, element, i));
+          }
+          data[keys[i]] = result;
+          position = next;
+        }
+      }
+      // Schema definition
+      else if (structValue instanceof Schema) {
+        structValue;
+      }
+      // Object definition
+      else if (isObject(structValue)) {
+      }
+    }
+
+    return {data, position};
+  }
+
+  protected readHeaderId(int8Array: Int8Array, position: number): string {
+    // const headerChar = this.readDataView(dataView, uint(8), position);
+    // if (typeof headerChar !== 'number' || headerChar !== 94) {
+    //   throw new Error(
+    //     `Expected array header to begin at position ${position} but got ${headerChar}.`
+    //   );
+    // }
+    // const codes: number[] = [];
+    // for (let i = 0; i < 5; i++) {}
+    return String.fromCharCode(...int8Array.slice(position, position + 4));
   }
 
   /**
@@ -306,18 +318,18 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
         // Schema
         if (element instanceof Schema) {
           this.appendDataView(string(8), element.id);
-          for (const dataValue of dataProp) {
-            this.serialize(dataValue, element.struct);
+          for (let i = 0; i < dataProp.length; i++) {
+            this.serialize(dataProp[i], element.struct);
           }
         }
         // BufferView
         else {
-          for (const dataValue of dataProp) {
-            this.appendDataView(element, dataValue);
+          for (let i = 0; i < dataProp.length; i++) {
+            this.appendDataView(element, dataProp[i]);
           }
         }
       } else {
-        throw new Error('Bad object does not conform to schema');
+        throw new Error('Unsupported data type does not conform to schema definition.');
       }
     }
   }
