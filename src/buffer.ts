@@ -88,7 +88,7 @@ export class BufferManager {
    */
   public append(bufferView: BufferView, data: Serializable): void {
     switch (bufferView.type) {
-      case 'String8': {
+      case 'String': {
         this._dataView.setUint8(this._offset, 34); // Wrap in double quotes
         this._offset += uint8.bytes;
         const encoded = this._textEncoder.encode(data.toString());
@@ -126,7 +126,7 @@ export class BufferManager {
   public read(bufferView: BufferView<bigint>): bigint;
   public read(bufferView: BufferView): Serializable {
     switch (bufferView.type) {
-      case 'String8': {
+      case 'String': {
         const startingDoubleQuote = this._uint8Array[this._offset]; // Char code of " is 34
         const endQuoteIndex = this._uint8Array.indexOf(34, this._offset + 1);
         if (startingDoubleQuote !== 34 || endQuoteIndex < this._offset) {

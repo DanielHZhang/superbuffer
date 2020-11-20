@@ -4,14 +4,19 @@ import type {Schema} from './schema';
 /* eslint-disable @typescript-eslint/consistent-indexed-object-style */
 
 /**
- * Data to be serialized is a number.
+ * Number data.
  */
 type TNumber = 'Uint8' | 'Uint16' | 'Uint32' | 'Int8' | 'Int16' | 'Int32' | 'Float32' | 'Float64';
 
 /**
- * Data to be serialized is a bigint.
+ * Bigint data.
  */
 type TBigInt = 'BigInt64' | 'BigUint64';
+
+/**
+ * String data.
+ */
+type TString = 'String';
 
 /**
  * A type that can be serialized into ArrayBuffer.
@@ -22,7 +27,7 @@ export type Serializable = string | number | bigint;
  * Defines a TypedArray within an ArrayBuffer.
  */
 export type BufferView<T extends Serializable = Serializable> = {
-  readonly type: T extends string ? 'String8' : T extends number ? TNumber : TBigInt;
+  readonly type: T extends string ? TString : T extends number ? TNumber : TBigInt;
   readonly bytes: number;
 };
 

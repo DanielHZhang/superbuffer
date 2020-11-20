@@ -1,21 +1,36 @@
-import {bigint, ExtractModelObject, float, int, Model, Schema, string, uint} from '../src';
+import {
+  ExtractModelObject,
+  float32,
+  float64,
+  int16,
+  int32,
+  int64,
+  int8,
+  Model,
+  Schema,
+  string,
+  uint16,
+  uint32,
+  uint64,
+  uint8,
+} from '../src';
 
 describe('BufferView', () => {
   // type Player = typeof snap['players'][number];
   const playerSchema = new Schema('player', {
-    a: int(8),
-    b: uint(8),
-    c: int(16),
-    d: uint(16),
-    e: int(32),
-    f: uint(32),
-    g: bigint({signed: true}),
-    h: bigint({signed: false}),
-    i: float(32),
-    j: float(64),
-    k: string(8),
-    kk: string(8, {length: 24}),
-    l: string(16),
+    a: int8,
+    b: uint8,
+    c: int16,
+    d: uint16,
+    e: int32,
+    f: uint32,
+    g: int64,
+    h: uint64,
+    i: float32,
+    j: float64,
+    k: string,
+    kk: string,
+    l: string,
   });
 
   // type Snapshot = {players: Player[]};

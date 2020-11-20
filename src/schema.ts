@@ -120,7 +120,7 @@ export class Schema<T extends Record<string, unknown> = Record<string, unknown>>
    */
   protected static getSortPriority(item: BufferViewOrSchema): number {
     if (isBufferView(item)) {
-      if (item.type === 'String8') {
+      if (item.type === 'String') {
         return 2;
       }
       return 0;
@@ -130,7 +130,7 @@ export class Schema<T extends Record<string, unknown> = Record<string, unknown>>
     }
     if (Array.isArray(item)) {
       if (isBufferView(item[0])) {
-        if (item[0].type === 'String8') {
+        if (item[0].type === 'String') {
           return 3;
         }
         return 1;

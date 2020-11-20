@@ -89,9 +89,9 @@ export const float32 = float(32);
 export const float64 = float(64);
 
 /**
- * `string8`: UTF-8 encoding (Uint8Array)
+ * `string`: UTF-8 encoding (Uint8Array)
  */
-export const string8: BufferView<string> = {
-  type: 'String8',
+export const string: BufferView<string> = {
+  type: 'String' as const,
   bytes: 1,
 };
