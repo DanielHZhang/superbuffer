@@ -2,85 +2,90 @@ import type {BufferView} from './types';
 
 // See: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Typed_arrays
 
-type DigitOption = {
-  /** Number of digits to truncate the number and decimal to. */
-  digits?: number;
-};
-type SignedOption = {
-  /** Denotes whether the integer is signed or unsigned. */
-  signed: boolean;
-};
-type StringOptions = {
-  /** Number of characters to truncate the string to. */
-  length: number;
-};
-
 /**
- * Creates a schema representation for a signed integer value.\
- * Types of integers:\
- * `int8`: [-128, 127] (1 byte)\
- * `int16`: [-32768, 32767] (2 bytes)\
- * `int32`: [-2147483648, 2147483647] (4 bytes)\
+ * Creates a schema representation for a signed integer value.
  * @param type Bit length of the integer.
- * @param options Control whether the int is signed and truncated.
- * @default options.signed false
  */
-export const int = (type: 8 | 16 | 32, options?: DigitOption): BufferView<number> => ({
+const int = (type: 8 | 16 | 32): BufferView<number> => ({
   type: `Int${type}` as const,
   bytes: type === 8 ? 1 : type === 16 ? 2 : 4,
-  digits: options?.digits,
 });
 
+/**
+ * `int8`: [-128, 127] (1 byte)
+ */
 export const int8 = int(8);
+
+/**
+ * `int16`: [-32768, 32767] (2 bytes)
+ */
 export const int16 = int(16);
+
+/**
+ * `int32`: [-2147483648, 2147483647] (4 bytes)
+ */
 export const int32 = int(32);
 
 /**
- * Creates a schema representation for an unsigned integer value.\
- * Types of integers:\
- * `uint8`: [0, 255] (1 byte)\
- * `uint16`: [0, 65535] (2 bytes)\
- * `uint32`: [0, 4294967295] (4 bytes)
+ * Creates a schema representation for an unsigned integer value.
  * @param type Bit length of the integer.
- * @param options Control whether the int is signed and truncated.
  */
-export const uint = (type: 8 | 16 | 32, options?: DigitOption): BufferView<number> => ({
+const uint = (type: 8 | 16 | 32): BufferView<number> => ({
   type: `Uint${type}` as const,
   bytes: type === 8 ? 1 : type === 16 ? 2 : 4,
-  digits: options?.digits,
 });
 
+/**
+ * `uint8`: [0, 255] (1 byte)
+ */
 export const uint8 = uint(8);
+
+/**
+ * `uint16`: [0, 65535] (2 bytes)
+ */
 export const uint16 = uint(16);
+
+/**
+ * `uint32`: [0, 4294967295] (4 bytes)
+ */
 export const uint32 = uint(32);
 
 /**
- * Creates a schema representation for a BigInteger value.\
- * Types of BigIntegers:\
- * `int64`: [-2^63, 2^63-1] (8 bytes)\
- * `uint64`: [0, 2^64-1] (8 bytes)
- * @param options Control whether the bigint is signed and truncated.
+ * Creates a schema representation for a BigInteger value.
+ * @param signed Control whether the bigint is signed or unsigned.
  */
-export const bigint = (options: DigitOption & SignedOption): BufferView<bigint> => ({
-  type: `Big${options.signed ? 'Int' : 'Uint'}64` as const,
+const bigint = (signed: boolean): BufferView<bigint> => ({
+  type: `Big${signed ? 'Int' : 'Uint'}64` as const,
   bytes: 8,
-  digits: options.digits,
 });
 
 /**
- * Creates a schema representation for a floating-point value.\
- * Types of floats:\
- * `float32`: [1.2×10-38, 3.4×1038] (7 significant digits) (4 bytes)\
- * `float64`: [5.0×10-324, 1.8×10308] (16 significant digits) (8 bytes)
- * @param options Control whether the float is truncated.
+ * `int64`: [-2^63, 2^63-1] (8 bytes)
  */
-export const float = (type: 32 | 64, options?: DigitOption): BufferView<number> => ({
+export const int64 = bigint(true);
+
+/**
+ * `uint64`: [0, 2^64-1] (8 bytes)
+ */
+export const uint64 = bigint(false);
+
+/**
+ * Creates a schema representation for a floating-point value.
+ * @param type Bit length of the float.
+ */
+const float = (type: 32 | 64): BufferView<number> => ({
   type: `Float${type}` as const,
   bytes: type === 32 ? 4 : 8,
-  digits: options?.digits,
 });
 
+/**
+ * `float32`: [1.2×10-38, 3.4×1038] (7 significant digits) (4 bytes)
+ */
 export const float32 = float(32);
+
+/**
+ * `float64`: [5.0×10-324, 1.8×10308] (16 significant digits) (8 bytes)
+ */
 export const float64 = float(64);
 
 /**
@@ -90,10 +95,9 @@ export const float64 = float(64);
  * `string16`: UTF-16 (2 bytes per char)
  * @param options Control whether the string is truncated.
  */
-export const string = (type: 8 | 16, options?: StringOptions): BufferView<string> => ({
+const string = (type: 8 | 16): BufferView<string> => ({
   type: `String${type}` as const,
   bytes: type === 8 ? 1 : 2,
-  length: options?.length,
 });
 
 export const string8 = string(8);
