@@ -2,6 +2,7 @@ import {Schema} from './schema';
 import {int16, string8, uint16, uint8} from './views';
 import {isObject, isSerializable, isBufferView} from './utils';
 import type {BufferView, SchemaObject, SchemaDefinition, Serializable} from './types';
+import {BufferManager} from './buffer';
 
 export class Model<T extends Record<string, unknown> = Record<string, unknown>> {
   /**
@@ -15,54 +16,11 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
   public static readonly BUFFER_ARRAY = 2;
 
   /**
-   * Max buffer size for a single serialized object of 512 kibibytes.
-   */
-  protected static readonly MAX_BUFFER_SIZE = 512 * 1024; // TODO: potentially make adjustable
-
-  /**
-   * Identifier for the start position of serialized plain objects.
-   */
-  protected static readonly OBJECT_HEADER = 61312;
-
-  /**
-   * Identifier for the start position of serialized arrays.
-   */
-  protected static readonly ARRAY_HEADER = 48364;
-
-  /**
-   * Identifier for the start position of serialized schema objects.
-   */
-  protected static readonly SCHEMA_HEADER = 46670;
-
-  /**
-   * Identifier for the start position of a serialized string.
-   */
-  protected static readonly STRING_START = -21748;
-
-  /**
-   * Identifier for the end posiition of a serialized string.
-   */
-  protected static readonly STRING_END = -26353;
-
-  /**
-   * Internal ArrayBuffer reference.
-   */
-  protected _buffer: ArrayBuffer;
-
-  /**
-   * Current byte position in the DataView.
-   */
-  protected _bytes: number;
-
-  /**
-   * Internal DataView reference.
-   */
-  protected _dataView: DataView;
-
-  /**
    * Internal Schema that this model instance is defined by.
    */
   protected _schema: Schema<T>;
+
+  protected _buffer: BufferManager;
 
   /**
    * Get the schema definition.
@@ -83,10 +41,8 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
    * @param schema Schema instance that this model is defined by.
    */
   public constructor(schema: Schema<T>) {
-    this._bytes = 0;
-    this._buffer = new ArrayBuffer(this._bytes);
-    this._dataView = new DataView(this._buffer);
     this._schema = schema;
+    this._buffer = new BufferManager();
   }
 
   /**
@@ -124,7 +80,7 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
    * @param objectOrArray The object or array of objects to be serialized.
    */
   public toBuffer(objectOrArray: SchemaObject<T> | SchemaObject<T>[]): ArrayBuffer {
-    this.refresh();
+    this._buffer.refresh();
 
     // Array
     if (Array.isArray(objectOrArray)) {
@@ -271,15 +227,6 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
     return {data, position};
   }
 
-  protected isHeader(current: any): boolean {
-    return (
-      typeof current === 'number' &&
-      (current === Model.ARRAY_HEADER ||
-        current === Model.OBJECT_HEADER ||
-        current === Model.SCHEMA_HEADER)
-    );
-  }
-
   /**
    * Serialize data that adheres to the provided object structure.
    * @param data Data to be serialized.
@@ -291,7 +238,7 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
       const schemaProp = struct[key]; // Corresponds with values from schema
       // ArrayView
       if (isBufferView(schemaProp) && isSerializable(dataProp)) {
-        this.appendDataView(schemaProp, dataProp);
+        this._buffer.append(schemaProp, dataProp);
       }
       // Schema
       else if (schemaProp instanceof Schema && isObject(dataProp)) {
@@ -326,83 +273,5 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
         throw new Error('Unsupported data type does not conform to schema definition.');
       }
     }
-  }
-
-  protected readDataViewString(
-    dataView: DataView,
-    bufferView: BufferView<string>,
-    position: number
-  ): {data: string; position: number} {
-    const getter = `get${bufferView.type === 'String8' ? 'Uint8' : 'Uint16'}` as const;
-    let data = '';
-    let num;
-    while (position < dataView.byteLength) {
-      num = dataView[getter](position);
-      position += bufferView.bytes;
-      if (num === Model.STRING_END) {
-        break;
-      }
-      data += String.fromCharCode(num);
-    }
-    return {data, position};
-  }
-
-  /**
-   * Read the DataView at the specified position according to the BufferView type.
-   * @param dataView DataView to be read.
-   * @param bufferView BufferView to define the type read.
-   * @param position Position in the DataView where to read.
-   */
-  protected readDataView(
-    dataView: DataView,
-    bufferView: BufferView<number | bigint>,
-    position: number
-  ): Serializable {
-    return dataView[`get${bufferView.type}` as const](position);
-  }
-
-  /**
-   * Append data to this model's DataView buffer.
-   * @param bufferView BufferView to define the type appended.
-   * @param data Data to be appended to the DataView.
-   */
-  protected appendDataView<T extends Serializable>(bufferView: BufferView<T>, data: T): void {
-    if (bufferView.type === 'String8' || bufferView.type === 'String16') {
-      if (typeof data === 'string') {
-        // Wrap string in start sequence
-        this._dataView.setInt16(this._bytes, Model.STRING_START);
-        this._bytes += int16.bytes;
-
-        for (let i = 0; i < data.length; i++) {
-          this._dataView[`set${bufferView.type === 'String8' ? 'Uint8' : 'Uint16'}` as const](
-            this._bytes,
-            data.charCodeAt(i)
-          );
-          this._bytes += bufferView.bytes;
-        }
-
-        // Wrap string in end sequence
-        this._dataView.setInt16(this._bytes, Model.STRING_END);
-        this._bytes += int16.bytes;
-      }
-    } else {
-      if (typeof data === 'number') {
-        if (bufferView.type === 'BigInt64' || bufferView.type === 'BigUint64') {
-          this._dataView[`set${bufferView.type}` as const](this._bytes, BigInt(data));
-        } else {
-          this._dataView[`set${bufferView.type}` as const](this._bytes, data);
-        }
-        this._bytes += bufferView.bytes; // Increment the bytes
-      }
-    }
-  }
-
-  /**
-   * Refresh this Model's internal buffer and DataView before toBuffer is called.
-   */
-  protected refresh(): void {
-    this._buffer = new ArrayBuffer(Model.MAX_BUFFER_SIZE);
-    this._dataView = new DataView(this._buffer);
-    this._bytes = 0;
   }
 }

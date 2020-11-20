@@ -5,15 +5,23 @@ import type {Schema} from './schema';
 
 export type Serializable = string | number | bigint;
 
-type Num = 'Uint8' | 'Uint16' | 'Uint32' | 'Int8' | 'Int16' | 'Int32' | 'Float32' | 'Float64';
-type Str = 'String8' | 'String16';
-type Big = 'BigInt64' | 'BigUint64';
+export type ViewNumber =
+  | 'Uint8'
+  | 'Uint16'
+  | 'Uint32'
+  | 'Int8'
+  | 'Int16'
+  | 'Int32'
+  | 'Float32'
+  | 'Float64';
+export type ViewString = 'String8' | 'String16';
+export type ViewBigInt = 'BigInt64' | 'BigUint64';
 
 /**
  * Defines a TypedArray within an ArrayBuffer.
  */
 export type BufferView<T extends Serializable = Serializable> = {
-  readonly type: T extends number ? Num : T extends bigint ? Big : Str;
+  readonly type: T extends string ? 'String8' : T extends number ? ViewNumber : ViewBigInt;
   readonly bytes: number;
 };
 

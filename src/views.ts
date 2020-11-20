@@ -89,16 +89,9 @@ export const float32 = float(32);
 export const float64 = float(64);
 
 /**
- * Creates a schema representation for a string value.\
- * Types of strings:\
- * `string8`: UTF-8 (1 byte per char)\
- * `string16`: UTF-16 (2 bytes per char)
- * @param options Control whether the string is truncated.
+ * `string8`: UTF-8 encoding (Uint8Array)
  */
-const string = (type: 8 | 16): BufferView<string> => ({
-  type: `String${type}` as const,
-  bytes: type === 8 ? 1 : 2,
-});
-
-export const string8 = string(8);
-export const string16 = string(16);
+export const string8: BufferView<string> = {
+  type: 'String8',
+  bytes: 1,
+};
