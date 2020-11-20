@@ -1,10 +1,14 @@
-import {Schema} from './schema';
-import {float32, int16, string8, uint16, uint64, uint8} from './views';
-import {isObject, isSerializable, isBufferView} from './utils';
-import type {BufferView, SchemaObject, SchemaDefinition, Serializable} from './types';
 import {BufferManager} from './buffer';
 import {ARRAY_HEADER, OBJECT_HEADER, SCHEMA_HEADER} from './constants';
+import {Schema} from './schema';
+import {uint16, uint8} from './views';
+import {isObject, isSerializable, isBufferView} from './utils';
+import type {SchemaObject, SchemaDefinition} from './types';
 
+/**
+ * The Model class provides an API for serializing and deserializing ArrayBuffers into objects
+ * specified by their Schema definitions.
+ */
 export class Model<T extends Record<string, unknown> = Record<string, unknown>> {
   /**
    * Unique identifier denoting the buffer's structure is an array of flattened hashmaps.

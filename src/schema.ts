@@ -1,46 +1,38 @@
 import {BufferViewOrSchema, SchemaDefinition} from './types';
 import {isObject, isBufferView} from './utils';
 
+/**
+ * The Schema class provides an API for creating definitions.
+ */
 export class Schema<T extends Record<string, unknown> = Record<string, unknown>> {
   /**
    * Map that contains references to all Schema instances.
    */
-  public static readonly _schemas: Map<string, Schema> = new Map();
-
-  /**
-   * Internal byte position reference.
-   */
-  protected _bytes: number = 0;
-
+  public static readonly _schemas = new Map<string, Schema>();
   /**
    * Internal id reference.
    */
   protected _id: number;
-
   /**
    * Internal name reference.
    */
   protected _name: string;
-
   /**
    * Internal schema definition reference.
    */
   protected _struct: SchemaDefinition<T>;
-
   /**
    * Get the schema id.
    */
   public get id(): number {
     return this._id;
   }
-
   /**
    * Get the schema name.
    */
   public get name(): string {
     return this._name;
   }
-
   /**
    * Get the schema definition.
    */
@@ -49,14 +41,7 @@ export class Schema<T extends Record<string, unknown> = Record<string, unknown>>
   }
 
   /**
-   * Get the number of bytes for a serialized object of this schema.
-   */
-  public get bytes(): number {
-    return this._bytes;
-  }
-
-  /**
-   * Create a new Schema instance with the specified name and structure.
+   * Create a new Schema instance.
    * @param name Unique name of the Schema.
    * @param struct SchemaDefinition structure of the Schema.
    */
@@ -74,8 +59,6 @@ export class Schema<T extends Record<string, unknown> = Record<string, unknown>>
         throw new Error('The maximum number of Schema instances (255) has been reached.');
       }
     }
-
-    this.calcBytes();
   }
 
   /**
@@ -162,37 +145,5 @@ export class Schema<T extends Record<string, unknown> = Record<string, unknown>>
     throw new Error(
       `Unsupported data type in schema definition: ${Array.isArray(item) ? item[0] : item}`
     );
-  }
-
-  // todo: fix whatever this function is doing
-  protected calcBytes(): void {
-    const iterate = (obj: Record<any, any>) => {
-      for (const property in obj) {
-        const type = obj._type;
-        const bytes = obj._bytes;
-
-        if (!type && Object.prototype.hasOwnProperty.call(obj, property)) {
-          if (typeof obj[property] === 'object') {
-            iterate(obj[property]);
-          }
-        } else {
-          if (property !== '_type' && property !== 'type') {
-            return;
-          }
-          if (!bytes) {
-            return;
-          }
-
-          // we multiply the bytes by the String8 / String16 length.
-          if (type === 'String8' || type === 'String16') {
-            const length = obj.length || 12;
-            this._bytes += bytes * length;
-          } else {
-            this._bytes += bytes;
-          }
-        }
-      }
-    };
-    iterate(this._struct);
   }
 }
