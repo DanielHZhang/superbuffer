@@ -11,6 +11,7 @@ describe('Benchmark', () => {
     y: int16,
   });
 
+
   // type Snapshot = {
   //   time: number;
   //   data: {players: Player[]};

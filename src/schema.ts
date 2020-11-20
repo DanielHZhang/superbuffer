@@ -157,32 +157,6 @@ export class Schema<T extends Record<string, unknown> = Record<string, unknown>>
     );
   }
 
-  // public deserialize(view: DataView, bytesRef: {bytes: number}): any {
-  //   const data = {};
-  //   const bytes = bytesRef.bytes;
-  //   for (const key in this._struct) {
-  //     if (!Object.prototype.hasOwnProperty.call(this._struct, key)) {
-  //       continue;
-  //     }
-  //     const prop = this._struct[key];
-  //     console.log('prop:', prop);
-  //     // apply special types options
-  //     if (digits) {
-  //       value *= Math.pow(10, -specialTypes.digits);
-  //       value = parseFloat(value.toFixed(specialTypes.digits));
-  //     }
-  //     // Handle specialTypes (e.g. x: {type: int16, digits: 2})
-  //     // let specialTypes;
-  //     // if (prop?.type?._type && prop?.type?._bytes) {
-  //     //   specialTypes = prop;
-  //     //   prop._type = prop.type._type;
-  //     //   prop._bytes = prop.type._bytes;
-  //     // }
-  //   }
-  //   bytesRef.bytes = bytes;
-  //   return data;
-  // }
-
   // todo: fix whatever this function is doing
   protected calcBytes(): void {
     const iterate = (obj: Record<any, any>) => {
