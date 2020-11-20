@@ -1,6 +1,6 @@
 import {Schema} from './schema';
-import {string8, uint16, uint8} from './views';
-import {isObject, isStringOrNumber, isBufferView} from './utils';
+import {int16, string8, uint16, uint8} from './views';
+import {isObject, isSerializable, isBufferView} from './utils';
 import type {BufferView, SchemaObject, SchemaDefinition, Serializable} from './types';
 
 export class Model<T extends Record<string, unknown> = Record<string, unknown>> {
@@ -33,6 +33,16 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
    * Identifier for the start position of serialized schema objects.
    */
   protected static readonly SCHEMA_HEADER = 46670;
+
+  /**
+   * Identifier for the start position of a serialized string.
+   */
+  protected static readonly STRING_START = -21748;
+
+  /**
+   * Identifier for the end posiition of a serialized string.
+   */
+  protected static readonly STRING_END = -26353;
 
   /**
    * Internal ArrayBuffer reference.
@@ -187,9 +197,14 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
       const structValue = struct[keys[i]];
       // BufferView definition
       if (isBufferView(structValue)) {
-        // const bytesToRead = structValue.bytes;
-        data[keys[i]] = this.readDataView(dataView, structValue, position);
-        position += structValue.bytes;
+        if (structValue.type === 'String8' || structValue.type === 'String16') {
+          const result = this.readDataViewString(dataView, structValue, position);
+          data[keys[i]] = result.data;
+          position = result.position;
+        } else {
+          data[keys[i]] = this.readDataView(dataView, structValue, position);
+          position += structValue.bytes;
+        }
       }
       // Array definition
       else if (Array.isArray(structValue)) {
@@ -265,18 +280,6 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
     );
   }
 
-  // protected readHeaderId(int8Array: Int8Array, position: number): string {
-  //   // const headerChar = this.readDataView(dataView, uint8, position);
-  //   // if (typeof headerChar !== 'number' || headerChar !== 94) {
-  //   //   throw new Error(
-  //   //     `Expected array header to begin at position ${position} but got ${headerChar}.`
-  //   //   );
-  //   // }
-  //   // const codes: number[] = [];
-  //   // for (let i = 0; i < 5; i++) {}
-  //   return String.fromCharCode(...int8Array.slice(position, position + 4));
-  // }
-
   /**
    * Serialize data that adheres to the provided object structure.
    * @param data Data to be serialized.
@@ -287,7 +290,7 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
       const dataProp = data[key]; // Actual data values
       const schemaProp = struct[key]; // Corresponds with values from schema
       // ArrayView
-      if (isBufferView(schemaProp) && isStringOrNumber(dataProp)) {
+      if (isBufferView(schemaProp) && isSerializable(dataProp)) {
         this.appendDataView(schemaProp, dataProp);
       }
       // Schema
@@ -325,6 +328,25 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
     }
   }
 
+  protected readDataViewString(
+    dataView: DataView,
+    bufferView: BufferView<string>,
+    position: number
+  ): {data: string; position: number} {
+    const getter = `get${bufferView.type === 'String8' ? 'Uint8' : 'Uint16'}` as const;
+    let data = '';
+    let num;
+    while (position < dataView.byteLength) {
+      num = dataView[getter](position);
+      position += bufferView.bytes;
+      if (num === Model.STRING_END) {
+        break;
+      }
+      data += String.fromCharCode(num);
+    }
+    return {data, position};
+  }
+
   /**
    * Read the DataView at the specified position according to the BufferView type.
    * @param dataView DataView to be read.
@@ -333,18 +355,9 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
    */
   protected readDataView(
     dataView: DataView,
-    bufferView: BufferView,
+    bufferView: BufferView<number | bigint>,
     position: number
   ): Serializable {
-    if (bufferView.type === 'String8' || bufferView.type === 'String16') {
-      let value = '';
-      for (let i = 0; i < 12; i++) {
-        value += String.fromCharCode(
-          dataView[`get${bufferView.type === 'String8' ? 'Uint8' : 'Uint16'}` as const](position)
-        );
-      }
-      return value;
-    }
     return dataView[`get${bufferView.type}` as const](position);
   }
 
@@ -356,8 +369,10 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
   protected appendDataView<T extends Serializable>(bufferView: BufferView<T>, data: T): void {
     if (bufferView.type === 'String8' || bufferView.type === 'String16') {
       if (typeof data === 'string') {
-        // Crop strings to default length of 12 characters
-        // const cropped = cropString(data, 12);
+        // Wrap string in start sequence
+        this._dataView.setInt16(this._bytes, Model.STRING_START);
+        this._bytes += int16.bytes;
+
         for (let i = 0; i < data.length; i++) {
           this._dataView[`set${bufferView.type === 'String8' ? 'Uint8' : 'Uint16'}` as const](
             this._bytes,
@@ -365,6 +380,10 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
           );
           this._bytes += bufferView.bytes;
         }
+
+        // Wrap string in end sequence
+        this._dataView.setInt16(this._bytes, Model.STRING_END);
+        this._bytes += int16.bytes;
       }
     } else {
       if (typeof data === 'number') {

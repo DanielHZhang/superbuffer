@@ -5,29 +5,38 @@ import type {Schema} from './schema';
 
 export type Serializable = string | number | bigint;
 
-export type ViewType =
-  | 'Uint8'
-  | 'Uint16'
-  | 'Uint32'
-  | 'Int8'
-  | 'Int16'
-  | 'Int32'
-  | 'BigInt64'
-  | 'BigUint64'
-  | 'Float32'
-  | 'Float64'
-  | 'String8'
-  | 'String16';
+type Num = 'Uint8' | 'Uint16' | 'Uint32' | 'Int8' | 'Int16' | 'Int32' | 'Float32' | 'Float64';
+type Str = 'String8' | 'String16';
+type Big = 'BigInt64' | 'BigUint64';
+
+// export type ViewType =  |  | ;
 
 /**
  * Defines a TypedArray within an ArrayBuffer.
  */
-export type BufferView<T extends Serializable = Serializable> = {
-  readonly type: ViewType;
-  readonly bytes: number;
-  readonly digits?: number;
-  readonly length?: number;
-};
+export type BufferView<T extends Serializable = Serializable> = T extends number
+  ? {
+      readonly type: Num;
+      readonly bytes: number;
+      readonly digits?: number;
+    }
+  : T extends string
+  ? {
+      readonly type: Str;
+      readonly bytes: number;
+      readonly length?: number;
+    }
+  : {
+      readonly type: Big;
+      readonly bytes: number;
+    };
+
+// {
+//   readonly type: T extends number ? IsNumber : T extends string ? IsString : IsBigInt;
+//   readonly bytes: number;
+//   readonly digits?: number;
+//   readonly length?: number;
+// };
 
 /**
  * A BufferView, BufferView array, Schema, or Schema array.
