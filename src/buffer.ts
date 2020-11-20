@@ -1,38 +1,50 @@
-import {STRING_END, STRING_START} from './constants';
-import type {BufferView, Serializable, ViewNumber, ViewString, ViewBigInt} from './types';
-import {int16} from './views';
+import {uint8} from './views';
+import type {BufferView, Serializable} from './types';
 
+/**
+ * The BufferManager class provides an API for reading and writing to an ArrayBuffer via
+ * DataViews while tracking the current byte offset and automatically handling string encoding.
+ */
 export class BufferManager {
   /**
    * Max buffer size for a serialized object. Default: 512 kibibytes.
    */
-  protected readonly _maxBufferSize;
-
-  /**
-   * Current byte position in the DataView.
-   */
-  protected _offset: number;
-
-  /**
-   * Internal DataView reference.
-   */
-  protected _dataView: DataView;
-
+  protected readonly _maxBufferSize: number;
   /**
    * Internal ArrayBuffer reference.
    */
   protected _buffer: ArrayBuffer;
-
-  protected _uint8Array: Uint8Array;
-
+  /**
+   * Internal DataView reference.
+   */
+  protected _dataView: DataView;
+  /**
+   * Current byte position in the DataView.
+   */
+  protected _offset: number;
+  /**
+   * Internal TextEncoder reference.
+   */
   protected _textEncoder: TextEncoder;
-
+  /**
+   * Internal TextDecoder reference.
+   */
   protected _textDecoder: TextDecoder;
+  /**
+   * Internal Uint8Array representation of the DataView.
+   */
+  protected _uint8Array: Uint8Array;
+  /**
+   * Get the current byte offset of the buffer.
+   */
+  public get offset(): number {
+    return this._offset;
+  }
 
-  // public get bytes(): number {
-  //   return this._bytePos;
-  // }
-
+  /**
+   * Create a new BufferManager instance.
+   * @param bufferSize The maximum size of serialized ArrayBuffers. Defaults to 512 kibibytes.
+   */
   public constructor(bufferSize?: number) {
     this._offset = 0;
     this._maxBufferSize = bufferSize ?? 512 * 1024;
@@ -45,6 +57,7 @@ export class BufferManager {
 
   /**
    * Refresh this Model's internal buffer and DataView before toBuffer is called.
+   * @param newBuffer Specific ArrayBuffer instance, otherwise a default will be used.
    */
   public refresh(newBuffer?: ArrayBuffer): void {
     if (newBuffer) {
@@ -60,16 +73,12 @@ export class BufferManager {
     }
   }
 
+  /**
+   * Copy the contents of the internal ArrayBuffer (which may contain trailing empty sections)
+   * into a new ArrayBuffer with no empty bytes.
+   */
   public finalize(): ArrayBuffer {
     return this._buffer.slice(0, this._offset);
-    // Copy into new buffer
-    // const newBuffer = new ArrayBuffer(this._bytePos);
-    // const uint8Array = new Uint8Array(newBuffer).set()
-    // const newDataView = new DataView(newBuffer);
-    // for (let i = 0; i < this._bytePos; i++) {
-    //   newDataView.setUint8(i, this._dataView.getUint8(i));
-    // }
-    // return newBuffer;
   }
 
   /**
@@ -80,13 +89,13 @@ export class BufferManager {
   public append(bufferView: BufferView, data: Serializable): void {
     switch (bufferView.type) {
       case 'String8': {
-        this._dataView.setInt16(this._offset, STRING_START);
-        this._offset += int16.bytes;
+        this._dataView.setUint8(this._offset, 34); // Wrap in double quotes
+        this._offset += uint8.bytes;
         const encoded = this._textEncoder.encode(data.toString());
         this._uint8Array.set(encoded, this._offset);
         this._offset += encoded.byteLength;
-        this._dataView.setInt16(this._offset, STRING_END);
-        this._offset += int16.bytes;
+        this._dataView.setUint8(this._offset, 34); // Wrap in double quotes
+        this._offset += uint8.bytes;
         return;
       }
       case 'BigInt64':
@@ -110,33 +119,30 @@ export class BufferManager {
    * Read the DataView at the current byte offset according to the BufferView type, and
    * increment the offset if the read was successful.
    * @param bufferView BufferView to define the type read.
-   * @param offset Byte offset in the DataView to read. Defaults to the current byte offset.
    */
-  public read(bufferView: BufferView<string>, offset?: number): string;
-  public read(bufferView: BufferView<number>, offset?: number): number;
-  public read(bufferView: BufferView<bigint>, offset?: number): bigint;
-  public read(bufferView: BufferView, offset: number = this._offset): Serializable {
+  public read(bufferView: BufferView): Serializable;
+  public read(bufferView: BufferView<string>): string;
+  public read(bufferView: BufferView<number>): number;
+  public read(bufferView: BufferView<bigint>): bigint;
+  public read(bufferView: BufferView): Serializable {
     switch (bufferView.type) {
       case 'String8': {
-        const startingDoubleQuote = this._uint8Array[offset];
-        const endQuoteIndex = this._uint8Array.indexOf(34, offset + 1); // Char code of " is 34
-        if (startingDoubleQuote !== 34 || endQuoteIndex < offset) {
+        const startingDoubleQuote = this._uint8Array[this._offset]; // Char code of " is 34
+        const endQuoteIndex = this._uint8Array.indexOf(34, this._offset + 1);
+        if (startingDoubleQuote !== 34 || endQuoteIndex < this._offset) {
           throw new Error('Buffer contains invalid string.');
         }
-        return this._textDecoder.decode(this._uint8Array.subarray(offset, endQuoteIndex - 1));
+        const result = this._textDecoder.decode(
+          this._uint8Array.subarray(this._offset, endQuoteIndex - 1)
+        );
+        this._offset = endQuoteIndex + 1;
+        return result;
       }
       default: {
-        return this._dataView[`get${bufferView.type}` as const](offset);
+        const result = this._dataView[`get${bufferView.type}` as const](this._offset);
+        this._offset += bufferView.bytes;
+        return result;
       }
     }
-  }
-
-  public walk() {}
-
-  protected isHeader(current: any): boolean {
-    return (
-      typeof current === 'number' &&
-      (current === ARRAY_HEADER || current === OBJECT_HEADER || current === SCHEMA_HEADER)
-    );
   }
 }

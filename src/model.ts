@@ -7,22 +7,27 @@ import {ARRAY_HEADER, OBJECT_HEADER, SCHEMA_HEADER} from './constants';
 
 export class Model<T extends Record<string, unknown> = Record<string, unknown>> {
   /**
-   * Unique identifier denoting the buffer's structure is a flattened hashmap.
-   */
-  public static readonly BUFFER_OBJECT = 1;
-
-  /**
    * Unique identifier denoting the buffer's structure is an array of flattened hashmaps.
    */
-  public static readonly BUFFER_ARRAY = 2;
-
+  public static readonly BUFFER_ARRAY = 1;
+  /**
+   * Unique identifier denoting the buffer's structure is a flattened hashmap.
+   */
+  public static readonly BUFFER_OBJECT = 2;
+  /**
+   * Internal BufferManager reference.
+   */
+  protected _buffer: BufferManager;
   /**
    * Internal Schema that this model instance is defined by.
    */
   protected _schema: Schema<T>;
-
-  protected _buffer: BufferManager;
-
+  /**
+   * Get the id of the Schema.
+   */
+  public get id(): number {
+    return this._schema.id;
+  }
   /**
    * Get the schema definition.
    */
@@ -31,14 +36,7 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
   }
 
   /**
-   * Get the id of the Schema.
-   */
-  public get id(): number {
-    return this._schema.id;
-  }
-
-  /**
-   * Create a new Model instance with the specified Schema instance.
+   * Create a new Model instance.
    * @param schema Schema instance that this model is defined by.
    */
   public constructor(schema: Schema<T>) {
@@ -109,15 +107,15 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
     this._buffer.refresh(buffer);
 
     // Determine if structure is object or array
-    const header = this._buffer.read(uint8, 0);
+    const header = this._buffer.read(uint8);
     if (expect && expect !== header) {
       throw new Error(`Expected ArrayBuffer structure ${expect} but got ${header}.`);
     }
 
     // Ensure the root model id matches this model
     if (
-      this._buffer.read(uint16, 1) !== SCHEMA_HEADER ||
-      this._buffer.read(uint8, 3) !== this._schema.id
+      this._buffer.read(uint16) !== SCHEMA_HEADER ||
+      this._buffer.read(uint8) !== this._schema.id
     ) {
       throw new Error("ArrayBuffer id does not match the id of this model's schema.");
     }
@@ -125,7 +123,7 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
     // Handle object
     if (header === Model.BUFFER_OBJECT) {
       // Start at position after the root id
-      return this.deserialize(this._schema.struct, 4).data as T;
+      return this.deserialize(this._schema.struct).data as T;
     }
     // Handle array
     else {
@@ -133,88 +131,58 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
     }
   }
 
-  protected deserialize(
-    struct: Record<string, any>,
-    startPosition: number
-  ): {data: Record<string, any>; position: number} {
+  protected deserialize(struct: Record<string, any>): Record<string, any> {
     const data: Record<string, any> = {};
     const keys = Object.keys(struct);
-    let position = startPosition;
+    // let position = startPosition;
 
     for (let i = 0; i < keys.length; i++) {
       const structValue = struct[keys[i]];
       // BufferView definition
       if (isBufferView(structValue)) {
-        if (structValue.type === 'String8') {
-          data[keys[i]] = this._buffer.read(structValue, position);
-        } else {
-          data[keys[i]] = this._buffer.read(structValue, position);
-          // position += structValue.bytes;
-        }
+        data[keys[i]] = this._buffer.read(structValue);
       }
       // Array definition
       else if (Array.isArray(structValue)) {
         // Confirm there is an array at the current position
-        if (this._buffer.read(uint16, position) !== ARRAY_HEADER) {
-          throw new Error(`Expected array header at position ${position}`);
+        if (this._buffer.read(uint16) !== ARRAY_HEADER) {
+          throw new Error(`Expected array header at position ${this._buffer.offset - 2}`);
         }
-        position += uint16.bytes;
+        const numElements = this._buffer.read(uint16);
         const element = structValue[0];
-        const result = [];
+        const results = [];
         if (element instanceof Schema) {
-          while (position < dataView.byteLength) {
-            const complete = this.deserialize(element.struct, position);
-            result.push(complete.data);
-            position = complete.position;
-            // Array has ended if no schema header with schema id
-            if (
-              this._buffer.read(uint16, complete.position) !== SCHEMA_HEADER ||
-              this._buffer.read(uint8, complete.position + 2) !== element.id
-            ) {
-              break;
-            }
+          for (let i = 0; i < numElements; i++) {
+            results.push(this.deserialize(element.struct));
           }
-          data[keys[i]] = result;
-        }
-        // BufferView
-        else if (isBufferView(element)) {
-          for (let i = position; i < dataView.byteLength; i++) {
-            const current = this._buffer.read(element, i);
-            if (this._buffer.isHeader(current)) {
-              data[keys[i]] = result;
-              position = i;
-              break;
-            } else {
-              result.push(current);
-            }
+        } else if (isBufferView(element)) {
+          for (let i = 0; i < numElements; i++) {
+            results.push(this._buffer.read(element));
           }
         }
+        data[keys[i]] = results;
       }
       // Schema or object definition
       else {
         let struct = structValue;
         if (structValue instanceof Schema) {
           if (
-            this._buffer.read(uint16, position) !== SCHEMA_HEADER ||
-            this._buffer.read(uint8, position + 2) !== structValue.id
+            this._buffer.read(uint16) !== SCHEMA_HEADER ||
+            this._buffer.read(uint8) !== structValue.id
           ) {
-            throw new Error(`Expected schema header at position ${position}`);
+            throw new Error(`Expected schema header at position ${this._buffer.offset - 3}`);
           }
-          position += 3;
           struct = structValue.struct;
         } else {
-          if (this._buffer.read(uint16, position) !== OBJECT_HEADER) {
-            throw new Error(`Expected object header at position ${position}`);
+          if (this._buffer.read(uint16) !== OBJECT_HEADER) {
+            throw new Error(`Expected object header at position ${this._buffer.offset - 2}`);
           }
-          position += 2;
         }
-        const complete = this.deserialize(struct, position);
-        data[keys[i]] = complete.data;
-        position = complete.position;
+        data[keys[i]] = this.deserialize(struct);
       }
     }
 
-    return {data, position};
+    return data;
   }
 
   /**
@@ -226,7 +194,7 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
     for (const key of Object.keys(struct)) {
       const dataProp = data[key]; // Actual data values
       const schemaProp = struct[key]; // Corresponds with values from schema
-      // ArrayView
+      // BufferView
       if (isBufferView(schemaProp) && isSerializable(dataProp)) {
         this._buffer.append(schemaProp, dataProp);
       }
@@ -244,6 +212,7 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
       // Array
       else if (Array.isArray(schemaProp) && Array.isArray(dataProp)) {
         this._buffer.append(uint16, ARRAY_HEADER); // Serialize array header before data
+        this._buffer.append(uint16, dataProp.length); // Serialize the number of elements
         const element = schemaProp[0];
         // Schema
         if (element instanceof Schema) {
@@ -254,12 +223,14 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
           }
         }
         // BufferView
-        else {
+        else if (isBufferView(element)) {
           for (let i = 0; i < dataProp.length; i++) {
             this._buffer.append(element, dataProp[i]);
           }
         }
-      } else {
+      }
+      // Unsupported data type
+      else {
         throw new Error('Unsupported data type does not conform to schema definition.');
       }
     }

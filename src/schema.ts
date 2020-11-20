@@ -131,26 +131,33 @@ export class Schema<T extends Record<string, unknown> = Record<string, unknown>>
 
   /**
    * Returns the priority index of the entity based on its type, in order:
-   * `BufferView`, `BufferView[]`, `Object`, `Schema`, `Schema[]`
+   * `BufferView<number>`, `BufferView<number>[]`, `BufferView<string>`, `BufferView<string>[]`,
+   * `Object`, `Schema`, `Schema[]`
    * @param item Entity to determine sort priority.
    */
   protected static getSortPriority(item: BufferViewOrSchema): number {
     if (isBufferView(item)) {
+      if (item.type === 'String8') {
+        return 2;
+      }
       return 0;
     }
     if (item instanceof Schema) {
-      return 3;
+      return 5;
     }
     if (Array.isArray(item)) {
       if (isBufferView(item[0])) {
+        if (item[0].type === 'String8') {
+          return 3;
+        }
         return 1;
       }
       if (item[0] instanceof Schema) {
-        return 4;
+        return 6;
       }
     }
     if (isObject(item)) {
-      return 2;
+      return 4;
     }
     throw new Error(
       `Unsupported data type in schema definition: ${Array.isArray(item) ? item[0] : item}`
