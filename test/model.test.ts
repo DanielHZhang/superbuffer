@@ -12,12 +12,7 @@ import {
 } from '../src';
 
 describe('Model class', () => {
-  const deserializeString = (
-    dataView: DataView,
-    type: BufferView,
-    start: number,
-    end: number
-  ) => {
+  const deserializeString = (dataView: DataView, type: BufferView, start: number, end: number) => {
     let str = '';
     for (let i = 0; i < end - start; i++) {
       if (type._type === 'String8') {
@@ -99,5 +94,46 @@ describe('Model class', () => {
     expect(propB).toStrictEqual('wow');
 
     // Third property `g`
+  });
+});
+
+describe('Empty data', () => {
+  const playerSchema = new Schema('player', {
+    id: uint8,
+  });
+
+  const botSchema = new Schema('bot', {
+    id: uint8,
+  });
+
+  const carSchema = new Schema('car', {
+    id: uint8,
+  });
+
+  const snapshotModel = Model.fromSchemaDefinition('snapshot', {
+    time: uint16,
+    data: {
+      emptyArr: [playerSchema],
+      emptyObj: botSchema,
+      superCar: carSchema,
+    },
+  });
+
+  const snap = {
+    data: {
+      emptyArr: [],
+      emptyObj: {},
+      superCar: {
+        id: 911,
+      },
+    },
+  };
+
+  test('Empty arrays and empty objects are omitted', () => {
+    const buffer = snapshotModel.toBuffer(snap);
+    const dataL = JSON.stringify(snapshotModel.fromBuffer(buffer)).length;
+    const snapL = JSON.stringify(snap).length;
+    const emptiesL = '"emptyArr":[],"emptyObj":{},'.length;
+    expect(dataL).toBe(snapL - emptiesL);
   });
 });

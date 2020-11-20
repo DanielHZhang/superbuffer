@@ -1,9 +1,9 @@
 {
   "name": "array-buffer-schema",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": "Daniel Zhang",
   "description": "Convert between objects and ArrayBuffers with ease",
-  "license": "BSD-2-Clause",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/DanielHZhang/array-buffer-schema"

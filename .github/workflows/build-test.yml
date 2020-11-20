@@ -1,0 +1,31 @@
+# Workflow for building and testing the project.
+name: build-test
+
+on:
+  push:
+    paths-ignore:
+      - .github/**
+      - .vscode/**
+      - "*.md"
+  pull_request:
+    paths-ignore:
+      - .github/**
+      - .vscode/**
+      - "*.md"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Use Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: 14
+          registry-url: https://registry.npmjs.org/
+      - name: Install deps, build, and test
+        run: |
+          yarn install --frozen-lockfile
+          yarn build
+          yarn test
