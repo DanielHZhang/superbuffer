@@ -67,9 +67,9 @@ export type SchemaObject<T> = {
 /**
  * Extract the SchemaDefinition type from a Model.
  */
-export type ExtractModelDefinition<T> = T extends Model<infer U> ? SchemaDefinition<U> : never;
+export type ExtractSchemaDefinition<T> = T extends Model<infer U> ? SchemaDefinition<U> : never;
 
 /**
  * Extract the SchemaObject type from a Model.
  */
-export type ExtractModelObject<T> = T extends Model<infer U> ? SchemaObject<U> : never;
+export type ExtractSchemaObject<T> = T extends Model<infer U> ? SchemaObject<U> : never;

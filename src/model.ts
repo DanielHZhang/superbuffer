@@ -13,39 +13,28 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
   /**
    * Unique identifier denoting the buffer's structure is an array of flattened hashmaps.
    */
-  public static readonly BUFFER_ARRAY = 1;
+  public static readonly BUFFER_ARRAY = 0;
   /**
    * Unique identifier denoting the buffer's structure is a flattened hashmap.
    */
-  public static readonly BUFFER_OBJECT = 2;
+  public static readonly BUFFER_OBJECT = 1;
+  /**
+   * Schema definition reference.
+   */
+  public readonly schema: Schema<T>;
   /**
    * Internal BufferManager reference.
    */
-  protected _buffer: BufferManager;
-  /**
-   * Internal Schema that this model instance is defined by.
-   */
-  protected _schema: Schema<T>;
-  /**
-   * Get the id of the Schema.
-   */
-  public get id(): number {
-    return this._schema.id;
-  }
-  /**
-   * Get the schema definition.
-   */
-  public get schema(): Schema {
-    return this._schema;
-  }
+  protected readonly _buffer: BufferManager;
 
   /**
    * Create a new Model instance.
    * @param schema Schema instance that this model is defined by.
+   * @param bufferSize The maximum size of serializable data. Default: 1 megabyte.
    */
-  public constructor(schema: Schema<T>) {
-    this._schema = schema;
-    this._buffer = new BufferManager();
+  public constructor(schema: Schema<T>, bufferSize?: number) {
+    this._buffer = new BufferManager(bufferSize);
+    this.schema = schema;
   }
 
   /**
@@ -86,14 +75,18 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
     this._buffer.refresh();
     if (Array.isArray(objectOrArray)) {
       this._buffer.append(uint8, Model.BUFFER_ARRAY);
-      this._buffer.append(uint8, this._schema.id);
+      this._buffer.append(uint8, this.schema.id);
       for (let i = 0; i < objectOrArray.length; i++) {
-        this.serialize(objectOrArray[i], this._schema.struct);
+        this.serialize(objectOrArray[i], this.schema.struct);
       }
     } else {
       this._buffer.append(uint8, Model.BUFFER_OBJECT);
-      this._buffer.append(uint8, this._schema.id);
-      this.serialize(objectOrArray, this._schema.struct);
+      this._buffer.append(uint16, SCHEMA_HEADER);
+      this._buffer.append(uint8, this.schema.id);
+      // console.log('before serialize:', this._buffer._buffer, this._buffer.offset);
+      // console.log('before serialize of:', this._buffer._dataView.getUint16(1));
+      this.serialize(objectOrArray, this.schema.struct);
+      // console.log('after serialize:', this._buffer._buffer, this._buffer.offset);
     }
     return this._buffer.finalize();
   }
@@ -104,11 +97,14 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
    * @param buffer The ArrayBuffer to be deserialized.
    * @param expect The expected buffer type (i.e. `Model.BUFFER_OBJECT) for deserialization.
    */
-  public fromBuffer(buffer: ArrayBuffer): T | T[];
-  public fromBuffer(buffer: ArrayBuffer, expect: typeof Model.BUFFER_OBJECT): T;
-  public fromBuffer(buffer: ArrayBuffer, expect: typeof Model.BUFFER_ARRAY): T[];
-  public fromBuffer(buffer: ArrayBuffer, expect?: number): T | T[] {
+  public fromBuffer(buffer: ArrayBuffer): SchemaObject<T> | SchemaObject<T>[];
+  public fromBuffer(buffer: ArrayBuffer, expect: typeof Model.BUFFER_OBJECT): SchemaObject<T>;
+  public fromBuffer(buffer: ArrayBuffer, expect: typeof Model.BUFFER_ARRAY): SchemaObject<T>[];
+  public fromBuffer(buffer: ArrayBuffer, expect?: number): SchemaObject<T> | SchemaObject<T>[] {
     this._buffer.refresh(buffer);
+
+    // console.log('offset:', this._buffer.offset);
+    // console.log('header:', this._buffer._dataView.getUint8(this._buffer.offset));
 
     // Determine if structure is object or array
     const header = this._buffer.read(uint8);
@@ -117,9 +113,13 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
     }
 
     // Ensure the root model id matches this model
+    // console.log('offset:', this._buffer.offset);
+    // console.log('schemaheader:', this._buffer._dataView.getUint16(this._buffer.offset));
+    // console.log('id:', this.schema.id, this._buffer._dataView.getUint8(this._buffer.offset + 2));
+    // console.log('arbuf:', this._buffer._buffer);
     if (
       this._buffer.read(uint16) !== SCHEMA_HEADER ||
-      this._buffer.read(uint8) !== this._schema.id
+      this._buffer.read(uint8) !== this.schema.id
     ) {
       throw new Error("ArrayBuffer id does not match the id of this model's schema.");
     }
@@ -127,11 +127,11 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
     // Handle object
     if (header === Model.BUFFER_OBJECT) {
       // Start at position after the root id
-      return this.deserialize(this._schema.struct).data as T;
+      return this.deserialize(this.schema.struct) as SchemaObject<T>;
     }
     // Handle array
     else {
-      return [] as T[];
+      return [] as SchemaObject<T>[];
     }
   }
 
@@ -142,6 +142,7 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
 
     for (let i = 0; i < keys.length; i++) {
       const structValue = struct[keys[i]];
+      console.log('struct val:', keys[i], structValue);
       // BufferView definition
       if (isBufferView(structValue)) {
         data[keys[i]] = this._buffer.read(structValue);
@@ -185,7 +186,7 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
         data[keys[i]] = this.deserialize(struct);
       }
     }
-
+    console.log('should return:', data);
     return data;
   }
 
@@ -195,9 +196,10 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
    * @param struct SchemaDefinition structure.
    */
   protected serialize(data: Record<string, any>, struct: Record<string, any>): void {
-    for (const key of Object.keys(struct)) {
-      const dataProp = data[key]; // Actual data values
-      const schemaProp = struct[key]; // Corresponds with values from schema
+    const keys = Object.keys(struct);
+    for (let i = 0; i < keys.length; i++) {
+      const dataProp = data[keys[i]]; // Actual data values
+      const schemaProp = struct[keys[i]]; // Corresponds with values from schema
       // BufferView
       if (isBufferView(schemaProp) && isSerializable(dataProp)) {
         this._buffer.append(schemaProp, dataProp);

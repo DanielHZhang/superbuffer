@@ -10,35 +10,17 @@ export class Schema<T extends Record<string, unknown> = Record<string, unknown>>
    */
   public static readonly _schemas = new Map<string, Schema>();
   /**
-   * Internal id reference.
+   * Id of the schema.
    */
-  protected _id: number;
+  public readonly id: number;
   /**
-   * Internal name reference.
+   * Name of the schema.
    */
-  protected _name: string;
+  public readonly name: string;
   /**
-   * Internal schema definition reference.
+   * Schema definition reference.
    */
-  protected _struct: SchemaDefinition<T>;
-  /**
-   * Get the schema id.
-   */
-  public get id(): number {
-    return this._id;
-  }
-  /**
-   * Get the schema name.
-   */
-  public get name(): string {
-    return this._name;
-  }
-  /**
-   * Get the schema definition.
-   */
-  public get struct(): SchemaDefinition<T> {
-    return this._struct;
-  }
+  public readonly struct: SchemaDefinition<Readonly<T>>;
 
   /**
    * Create a new Schema instance.
@@ -46,9 +28,9 @@ export class Schema<T extends Record<string, unknown> = Record<string, unknown>>
    * @param struct SchemaDefinition structure of the Schema.
    */
   public constructor(name: string, struct: SchemaDefinition<T>) {
-    this._name = name;
-    this._struct = Schema.definition(struct);
-    this._id = Schema._schemas.size;
+    this.name = name;
+    this.struct = Schema.definition(struct);
+    this.id = Schema._schemas.size;
 
     // Ensure schema with same name does not exist
     if (Schema._schemas.get(name)) {
@@ -65,7 +47,7 @@ export class Schema<T extends Record<string, unknown> = Record<string, unknown>>
    * Create a SchemaDefinition without creating a Schema instance.
    * @param obj Object defining the schema.
    */
-  public static definition<T>(obj: SchemaDefinition<T>): SchemaDefinition<T> {
+  public static definition<T>(obj: SchemaDefinition<T>): SchemaDefinition<Readonly<T>> {
     return this.sortStruct(obj);
   }
 

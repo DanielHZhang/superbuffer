@@ -7,17 +7,17 @@ import type {BufferView, Serializable} from './types';
  */
 export class BufferManager {
   /**
-   * Max buffer size for a serialized object. Default: 512 kibibytes.
+   * Max buffer size for a serialized object. Default: 1 megabyte.
    */
   protected readonly _maxBufferSize: number;
   /**
    * Internal ArrayBuffer reference.
    */
-  protected _buffer: ArrayBuffer;
+  public _buffer: ArrayBuffer;
   /**
    * Internal DataView reference.
    */
-  protected _dataView: DataView;
+  public _dataView: DataView;
   /**
    * Current byte position in the DataView.
    */
@@ -43,11 +43,11 @@ export class BufferManager {
 
   /**
    * Create a new BufferManager instance.
-   * @param bufferSize The maximum size of serialized ArrayBuffers. Defaults to 512 kibibytes.
+   * @param bufferSize The maximum size of the internal ArrayBuffer.
    */
   public constructor(bufferSize?: number) {
     this._offset = 0;
-    this._maxBufferSize = bufferSize ?? 512 * 1024;
+    this._maxBufferSize = bufferSize ?? 1e6;
     this._buffer = new ArrayBuffer(this._maxBufferSize);
     this._dataView = new DataView(this._buffer);
     this._uint8Array = new Uint8Array(this._buffer);

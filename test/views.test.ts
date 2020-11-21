@@ -1,5 +1,5 @@
 import {
-  ExtractModelObject,
+  ExtractSchemaObject,
   float32,
   float64,
   int16,
@@ -37,7 +37,7 @@ describe('BufferView', () => {
   const snapshotModel = Model.fromSchemaDefinition('snapshot', {
     players: [playerSchema],
   });
-  type Snapshot = ExtractModelObject<typeof snapshotModel>;
+  type Snapshot = ExtractSchemaObject<typeof snapshotModel>;
 
   const now = new Date().getTime();
   const snap: Snapshot = {

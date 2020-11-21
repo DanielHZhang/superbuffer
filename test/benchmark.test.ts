@@ -1,6 +1,6 @@
 import {performance} from 'perf_hooks';
 import {Model, uint8, int16, uint16} from '../src/index';
-import type {ExtractModelDefinition} from '../src/types';
+import type {ExtractSchemaDefinition} from '../src/types';
 
 describe('Benchmark', () => {
   // type Player = {id: number; x: number; y: number};
