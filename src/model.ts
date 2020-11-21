@@ -53,18 +53,9 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
    * Extract the root Model id from the ArrayBuffer.
    * @param buffer The ArrayBuffer from which to extract the id.
    */
-  public static getIdFromBuffer(buffer: ArrayBuffer): string {
+  public static getIdFromBuffer(buffer: ArrayBuffer): number {
     const dataView = new DataView(buffer);
-    const header = dataView.getUint8(0);
-    let id = '';
-    for (let i = 1; i < 6; i++) {
-      const uInt8 = dataView.getUint8(i);
-      id += String.fromCharCode(uInt8);
-    }
-    if (header !== Model.BUFFER_ARRAY && header !== Model.BUFFER_OBJECT && !id.startsWith('#')) {
-      throw new Error('Invalid ArrayBuffer structure.');
-    }
-    return id;
+    return dataView.getUint8(3);
   }
 
   /**
@@ -75,6 +66,7 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
     this._buffer.refresh();
     if (Array.isArray(objectOrArray)) {
       this._buffer.append(uint8, Model.BUFFER_ARRAY);
+      this._buffer.append(uint16, SCHEMA_HEADER);
       this._buffer.append(uint8, this.schema.id);
       for (let i = 0; i < objectOrArray.length; i++) {
         this.serialize(objectOrArray[i], this.schema.struct);
