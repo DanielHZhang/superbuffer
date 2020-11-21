@@ -1,36 +1,46 @@
 import {
+  ExtractSchemaObject,
+  float32,
+  float64,
+  int16,
+  int32,
+  int64,
+  int8,
   Model,
   Schema,
   string,
-  ExtractSchemaDefinition,
-  ExtractSchemaObject,
-  BufferView,
   uint16,
-  int8,
-  float32,
-  int16,
-  uint8,
   uint32,
   uint64,
-  int32,
-  int64,
-  float64,
+  uint8,
 } from '../src';
 
 describe('Model class', () => {
-  // const deserializeString = (dataView: DataView, type: BufferView, start: number, end: number) => {
-  //   let str = '';
-  //   for (let i = 0; i < end - start; i++) {
-  //     if (type._type === 'String8') {
-  //       str += String.fromCharCode(dataView.getUint8(start + i));
-  //     } else {
-  //       str += String.fromCharCode(dataView.getUint16(start + i));
-  //     }
-  //   }
-  //   return str;
-  // };
+  beforeEach(() => {
+    // @ts-ignore 2341
+    Schema._schemas.clear();
+  });
 
-  // it('Should flatten the data object properly', () => {
+  it('Should read the schema id from an ArrayBuffer', () => {
+    const model = Model.fromSchemaDefinition('test', {id: uint8, x: uint16});
+    const buffer = model.toBuffer({id: 0, x: 1.2345});
+    expect(Model.getIdFromBuffer(buffer)).toStrictEqual(model.schema.id);
+  });
+
+  it('Should serialize the buffer type at index 0', () => {
+    const model = Model.fromSchemaDefinition('test', {id: uint8, x: uint16});
+    const objectBuffer = model.toBuffer({id: 0, x: 1.2345});
+    const arrayBuffer = model.toBuffer([
+      {id: 0, x: 0.1234},
+      {id: 1, x: 1.2345},
+    ]);
+    const objectBufferView = new DataView(objectBuffer);
+    const arrayBufferView = new DataView(arrayBuffer);
+    expect(objectBufferView.getUint8(0)).toStrictEqual(Model.BUFFER_OBJECT);
+    expect(arrayBufferView.getUint8(0)).toStrictEqual(Model.BUFFER_ARRAY);
+  });
+
+  // it('Should flatten the data object', () => {
   //   // type Nested = {x: number; y: number};
   //   // type State = {
   //   //   e: Nested[];
@@ -87,6 +97,89 @@ describe('Model class', () => {
   //   // Third property `g`
   // });
 
+  it('Should deserialize uint8 ', () => {
+    const model = Model.fromSchemaDefinition('test', {x: uint8, y: uint8});
+    const object = {x: 255, y: 0};
+    const buffer = model.toBuffer(object);
+    expect(model.fromBuffer(buffer)).toStrictEqual(object);
+  });
+
+  it('Should deserialize uint16 ', () => {
+    const model = Model.fromSchemaDefinition('test', {x: uint16, y: uint16});
+    const object = {x: 0, y: 65535};
+    const buffer = model.toBuffer(object);
+    expect(model.fromBuffer(buffer)).toStrictEqual(object);
+  });
+
+  it('Should deserialize uint32 ', () => {
+    const model = Model.fromSchemaDefinition('test', {x: uint32, y: uint32});
+    const object = {x: 0, y: 4294967295};
+    const buffer = model.toBuffer(object);
+    expect(model.fromBuffer(buffer)).toStrictEqual(object);
+  });
+
+  it('Should deserialize int8 ', () => {
+    const model = Model.fromSchemaDefinition('test', {x: int8, y: int8});
+    const object = {x: -128, y: 127};
+    const buffer = model.toBuffer(object);
+    expect(model.fromBuffer(buffer)).toStrictEqual(object);
+  });
+
+  it('Should deserialize int16 ', () => {
+    const model = Model.fromSchemaDefinition('test', {x: int16, y: int16});
+    const object = {x: -32768, y: 32767};
+    const buffer = model.toBuffer(object);
+    expect(model.fromBuffer(buffer)).toStrictEqual(object);
+  });
+
+  it('Should deserialize int32 ', () => {
+    const model = Model.fromSchemaDefinition('test', {x: int32, y: int32});
+    const object = {x: -2147483648, y: 2147483647};
+    const buffer = model.toBuffer(object);
+    expect(model.fromBuffer(buffer)).toStrictEqual(object);
+  });
+
+  const truncate = (obj: Record<string, number>, precision: 7 | 16) => {
+    const newObj: Record<string, number> = {};
+    for (const key of Object.keys(obj)) {
+      newObj[key] = Number(obj[key].toPrecision(precision));
+    }
+    // console.log('new obj:', newObj);
+    return newObj;
+  };
+
+  it('Should deserialize float32 ', () => {
+    const model = Model.fromSchemaDefinition('test', {x: float32, y: float32});
+    const object = {x: 1.1234567, y: 1234567.1234567};
+    const buffer = model.toBuffer(object);
+    expect(model.fromBuffer(buffer)).toStrictEqual(truncate(object, 7));
+  });
+
+  it('Should deserialize float64 ', () => {
+    const model = Model.fromSchemaDefinition('test', {x: int32, y: int32});
+    const object = {x: -123.123456789101112, y: 987876.12352374893845};
+    const buffer = model.toBuffer(object);
+    expect(model.fromBuffer(buffer)).toStrictEqual(truncate(object, 16));
+  });
+
+  it('Should deserialize biguint64 ', () => {
+    const model = Model.fromSchemaDefinition('test', {x: uint64, y: uint64});
+    const object = {x: BigInt(0), y: BigInt(2 ** 64 - 1)};
+    const buffer = model.toBuffer(object);
+    const result = model.fromBuffer(buffer, Model.BUFFER_OBJECT);
+    expect(result.x.toString()).toStrictEqual(object.x.toString());
+    expect(result.y.toString()).toStrictEqual(object.y.toString());
+  });
+
+  // it('Should deserialize bigint64 ', () => {
+  //   const model = Model.fromSchemaDefinition('test', {x: int64, y: int64});
+  //   const object = {x: BigInt(-(2 ** 63)), y: BigInt(2 ** 63 - 1)};
+  //   const buffer = model.toBuffer(object);
+  //   const result = model.fromBuffer(buffer, Model.BUFFER_OBJECT);
+  //   expect(result.x).toStrictEqual(object.x);
+  //   expect(result.y).toStrictEqual(object.y);
+  // });
+
   it('Should deserialize any BufferView type', () => {
     const simple = Model.fromSchemaDefinition('object', {
       w: string,
@@ -117,14 +210,12 @@ describe('Model class', () => {
     };
     const buffer = simple.toBuffer(object);
     const result = simple.fromBuffer(buffer, Model.BUFFER_OBJECT);
-    // expect(result).toStrictEqual(object);
-    expect(result.a).toEqual(object.a);
+    for (const key in object) {
+      // @ts-expect-error Required to avoid jest BigInt issues.
+      expect(result[key]).toStrictEqual<Serializable>(object[key]);
+    }
   });
 });
-
-// it('Should deserialize uint16 object', () => {
-
-// });
 
 // describe('Empty data', () => {
 //   const playerSchema = new Schema('player', {

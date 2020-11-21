@@ -134,7 +134,7 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
 
     for (let i = 0; i < keys.length; i++) {
       const structValue = struct[keys[i]];
-      console.log('struct val:', keys[i], structValue);
+      // console.log('struct val:', keys[i], structValue);
       // BufferView definition
       if (isBufferView(structValue)) {
         data[keys[i]] = this._buffer.read(structValue);
@@ -178,7 +178,7 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
         data[keys[i]] = this.deserialize(struct);
       }
     }
-    console.log('should return:', data);
+    // console.log('should return:', data);
     return data;
   }
 

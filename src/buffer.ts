@@ -1,5 +1,6 @@
 import {uint8} from './views';
 import type {BufferView, Serializable} from './types';
+import {truncateFloat} from './utils';
 
 /**
  * The BufferManager class provides an API for reading and writing to an ArrayBuffer via
@@ -140,6 +141,13 @@ export class BufferManager {
       }
       default: {
         const result = this._dataView[`get${bufferView.type}` as const](this._offset);
+        if (typeof result === 'number') {
+          if (bufferView.type === 'Float32') {
+            return Number(result.toPrecision(7)); // Float32 has 7 significant digits
+          } else if (bufferView.type === 'Float64') {
+            return Number(result.toPrecision(16)); // Float64 has 16 significant digits
+          }
+        }
         this._offset += bufferView.bytes;
         return result;
       }

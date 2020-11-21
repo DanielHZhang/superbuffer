@@ -63,6 +63,10 @@ describe('BufferView', () => {
   let buffer: ArrayBuffer;
   const data = snap;
 
+  it('wow', () => {
+    expect(true).toBe(true);
+  });
+
   // it('Should serialize and deserialize with all view types', () => {
   //   buffer = snapshotModel.toBuffer(data);
   //   data = snapshotModel.fromBuffer(buffer);
@@ -133,59 +137,3 @@ describe('BufferView', () => {
   //   // expect().toBe(now);
   // });
 });
-
-/*
-
-objects given their own id
-
-primitives, primitive arrays, objects, schemas, array of objects/schemas
-
-{
-  b: uint16 // =76
-  d: [uint32]
-  a: {
-    two: {
-      three: uint8 // =12
-      four: uint8 // =24
-    }
-  },
-  e: Schema{x: uint8, y: uint8}
-  c: [
-    Schema{
-      x: uint8
-      y: uint8
-    }
-  ],
-}
-
-becomes:
-
-{rootSchemaId, string8} -> has id
-
-b
-{76, uint8}
-
-d...
-{1, uint32}
-{2, uint32}
-{3, uint32}
-
-a{}
-{a_id, string8} -> has id
-{two_id, string8} -> has id
-{12, uint8}
-{24, uint8}
-
-e{}
-{e_id, string8} -> has id
-{10, uint8}
-{10, uint8}
-
-c...
-{c_id, string8} -> has id
-{1, uint8} x
-{2, uint8} y
-{3, uint8} x
-{4, uint8} y
-
-*/

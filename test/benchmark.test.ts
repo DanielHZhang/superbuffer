@@ -1,6 +1,7 @@
 import {performance} from 'perf_hooks';
-import {Model, uint8, int16, uint16} from '../src/index';
-import type {ExtractSchemaDefinition} from '../src/types';
+import {Model, uint8, int16, uint16} from '../src';
+
+// benchmark for serialization, deserialization, model creation
 
 describe('Benchmark', () => {
   // type Player = {id: number; x: number; y: number};

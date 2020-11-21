@@ -2,7 +2,6 @@
   "compilerOptions": {
     "allowJs": true,
     "allowSyntheticDefaultImports": true,
-    "baseUrl": ".",
     "checkJs": true,
     "emitDecoratorMetadata": true,
     "esModuleInterop": true,
@@ -29,14 +28,6 @@
     "noImplicitThis": false,
     "noUnusedLocals": true,
     "outDir": "lib",
-    "paths": {
-      "src/*": [
-        "src/*"
-      ],
-      "test/*": [
-        "test/*"
-      ]
-    },
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "sourceMap": true,
