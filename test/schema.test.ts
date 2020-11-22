@@ -73,7 +73,7 @@ describe('Schema class', () => {
     }).toThrow();
   });
 
-  it('Should create identical definitions as the constructor', () => {
+  it('Should create identical definitions as the class constructor', () => {
     const obj = {
       a: {
         b: {

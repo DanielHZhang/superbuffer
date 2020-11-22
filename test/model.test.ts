@@ -237,7 +237,47 @@ describe('Model class', () => {
     expect(result).toStrictEqual(object);
   });
 
-  // Should deserialize BufferView array, string array, nested object, nested Schema, nested Schema array, all
+  it('Should deserialize BufferView array', () => {
+    const model = Model.fromSchemaDefinition('test', {x: [int16], y: [float32], z: [string]});
+  });
+
+  it('Should deserialize nested objects', () => {
+    const model = Model.fromSchemaDefinition('test', {
+      x: {
+        y: {
+          z: uint8,
+        },
+        x: {
+          y: uint16,
+          z: string,
+        },
+      },
+      a: {
+        b: {
+          c: int32,
+          d: string,
+        },
+        c: uint8,
+        d: string,
+      },
+    });
+  });
+
+  it('Should deserialize nested Schemas', () => {
+    const nested1 = new Schema('nested1', {x: uint8});
+    const nested2 = new Schema('nested2', {x: uint8});
+    const model = Model.fromSchemaDefinition('test', {
+      x: nested1,
+    });
+  });
+
+  it('Should deserialize nested Schema arrays', () => {
+    const nested1 = new Schema('nested1', {x: uint8});
+    const nested2 = new Schema('nested2', {x: uint8});
+    const model = Model.fromSchemaDefinition('test', {
+      x: nested1,
+    });
+  });
 
   // it('Should deserialize any BufferView type', () => {
   //   const simple = Model.fromSchemaDefinition('object', {
@@ -274,69 +314,159 @@ describe('Model class', () => {
   //     expect(result[key]).toStrictEqual<Serializable>(object[key]);
   //   }
   // });
+
+  // // type Player = typeof snap['players'][number];
+  // const playerSchema = new Schema('player', {
+  //   a: int8,
+  //   b: uint8,
+  //   c: int16,
+  //   d: uint16,
+  //   e: int32,
+  //   f: uint32,
+  //   g: int64,
+  //   h: uint64,
+  //   i: float32,
+  //   j: float64,
+  //   k: string,
+  //   kk: string,
+  //   l: string,
+  // });
+
+  // // type Snapshot = {players: Player[]};
+  // const snapshotModel = Model.fromSchemaDefinition('snapshot', {
+  //   players: [playerSchema],
+  // });
+  // type Snapshot = ExtractSchemaObject<typeof snapshotModel>;
+
+  // const now = new Date().getTime();
+  // const snap: Snapshot = {
+  //   players: [
+  //     {
+  //       a: 10,
+  //       b: 10,
+  //       c: 50,
+  //       d: 50,
+  //       e: 100,
+  //       f: 100,
+  //       g: BigInt(now),
+  //       h: BigInt(now),
+  //       i: 1.123456,
+  //       j: 1.123456789,
+  //       k: 'This line is too long.',
+  //       kk: 'This line is too long.',
+  //       l: 'Эта строка слишком длинная.',
+  //     },
+  //   ],
+  // };
+
+  // let buffer: ArrayBuffer;
+  // const data = snap;
+
+  // it('wow', () => {
+  //   expect(true).toBe(true);
+  // });
+
+  // it('Should serialize and deserialize with all view types', () => {
+  //   buffer = snapshotModel.toBuffer(data);
+  //   data = snapshotModel.fromBuffer(buffer);
+
+  //   // console.log('data:', data);
+
+  //   expect(data.players[0].g).toBe(now);
+  //   expect(data.players[0].h).toBe(now);
+  //   expect(data.players[0].k).toBe('This line is');
+  //   expect(data.players[0].kk.trim()).toBe('This line is too long.');
+  //   expect(data.players[0].l).toBe('Эта строка с');
+  // });
+
+  // it('Should handle empty data objects', () => {
+  //   const playerSchema = new Schema('player', {
+  //     id: uint8,
+  //   });
+  //   const botSchema = new Schema('bot', {
+  //     id: uint8,
+  //   });
+  //   const carSchema = new Schema('car', {
+  //     id: uint8,
+  //   });
+  //   const snapshotModel = Model.fromSchemaDefinition('snapshot', {
+  //     time: uint16,
+  //     data: {
+  //       emptyArr: [playerSchema],
+  //       emptyObj: botSchema,
+  //       superCar: carSchema,
+  //     },
+  //   });
+  //   const snap = {
+  //     data: {
+  //       emptyArr: [],
+  //       emptyObj: {},
+  //       superCar: {
+  //         id: 911,
+  //       },
+  //     },
+  //   };
+  //   const buffer = snapshotModel.toBuffer(snap);
+  //   const dataL = JSON.stringify(snapshotModel.fromBuffer(buffer)).length;
+  //   const snapL = JSON.stringify(snap).length;
+  //   const emptiesL = '"emptyArr":[],"emptyObj":{},'.length;
+  //   expect(dataL).toBe(snapL - emptiesL);
+  // });
 });
 
-// describe('Empty data', () => {
-//   const playerSchema = new Schema('player', {
-//     id: uint8,
+// it('Should serialize and deserialize properly with arrays', () => {
+//   const stateSlice = new Schema('slice', {
+//     x: uint8,
+//     y: uint32,
 //   });
 
-//   const botSchema = new Schema('bot', {
-//     id: uint8,
+//   const innerSlice = new Schema('inner', {
+//     wow: string16,
 //   });
 
-//   const carSchema = new Schema('car', {
-//     id: uint8,
+//   const secondSlice = new Schema('slice2', {
+//     a: uint16,
+//     b: int8,
+//     inner: innerSlice,
 //   });
 
-//   const snapshotModel = Model.fromSchemaDefinition('snapshot', {
-//     time: uint16,
-//     data: {
-//       emptyArr: [playerSchema],
-//       emptyObj: botSchema,
-//       superCar: carSchema,
+//   const test = Model.fromSchemaDefinition('w', {
+//     wow: uint8,
+//     slices: [stateSlice],
+//     secondSlices: {
+//       first: [secondSlice],
+//       second: uint16,
 //     },
 //   });
 
-//   const snap = {
-//     data: {
-//       emptyArr: [],
-//       emptyObj: {},
-//       superCar: {
-//         id: 911,
+//   const exampleState = {
+//     wow: 20,
+//     slices: [
+//       {
+//         x: 0,
+//         y: 1,
 //       },
+//       {
+//         x: 5,
+//         y: 6,
+//       },
+//     ],
+//     secondSlices: {
+//       first: [
+//         {
+//           a: 10,
+//           b: 2,
+//           inner: {
+//             wow: 'cool!',
+//           },
+//         },
+//       ],
+//       second: 69,
 //     },
 //   };
 
-//   test('Empty arrays and empty objects are omitted', () => {
-//     const buffer = snapshotModel.toBuffer(snap);
-//     const dataL = JSON.stringify(snapshotModel.fromBuffer(buffer)).length;
-//     const snapL = JSON.stringify(snap).length;
-//     const emptiesL = '"emptyArr":[],"emptyObj":{},'.length;
-//     expect(dataL).toBe(snapL - emptiesL);
-//   });
+//   const serialized = test.toBuffer(exampleState);
+//   const deserialized = test.fromBuffer(serialized);
+
+//   // expect().toBe(now);
 // });
-
-// const first = new Schema('1', {x: uint8});
-// const second = new Schema('2', {one: first});
-// const third = new Schema('3', {one: first, two: second});
-
-/**
-third[]
-^[]$ <- denote array
-^02$ <- third object id
-^{}$ <- index 0 third object starts here
-^00$
-1
-^01$
-^00$
-2
-,
-^{}$ <- index 1 third object starts here
-^00$
-1
-^01$
-^00$
-2
-*/
-// ^[]$

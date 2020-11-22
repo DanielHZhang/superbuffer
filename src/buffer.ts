@@ -1,6 +1,5 @@
 import {uint8} from './views';
 import type {BufferView, Serializable} from './types';
-import {truncateFloat} from './utils';
 
 /**
  * The BufferManager class provides an API for reading and writing to an ArrayBuffer via
