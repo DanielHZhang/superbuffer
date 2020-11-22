@@ -1,4 +1,5 @@
 import {
+  BufferView,
   ExtractSchemaObject,
   float32,
   float64,
@@ -14,6 +15,8 @@ import {
   uint64,
   uint8,
 } from '../src';
+import {ARRAY_HEADER, OBJECT_HEADER, SCHEMA_HEADER} from '../src/constants';
+import {isBufferView} from '../src/utils';
 
 describe('Model class', () => {
   beforeEach(() => {
@@ -62,7 +65,11 @@ describe('Model class', () => {
     const stateModel = new Model(state);
     const object = {
       b: 'wow',
-      e: [{x: 1, y: 1}, {x: 12, y: 12}, {y: 123, x: 123}],
+      e: [
+        {x: 1, y: 1},
+        {x: 12, y: 12},
+        {y: 123, x: 123},
+      ],
       g: [1, 2, 3],
       a: 2,
       f: {y: 3, x: 3},
@@ -72,60 +79,72 @@ describe('Model class', () => {
         three: {
           how: -11234,
           about: -234,
-        }
+        },
       },
       h: ['some', 'string', 'of variable', 'lengths', '1'],
       i: 3.1415,
     };
     const buffer = stateModel.toBuffer(object);
     const dataView = new DataView(buffer);
-
-    let position = 0;
+    const uint8Array = new Uint8Array(buffer);
+    const decoder = new TextDecoder();
     const order = [
-      uint8, // buffer type
-      uint16, // schema header
-      uint8, // schema id
-      int8, // a
-      float32, // i
-      uint16, // array header
-      uint16, // array num elements
-      ...Array.from({length: object.g.length}, () => uint16), // g
-      string, // b
-      uint16, // array header
-      uint16, // aray num elements
-      ...Array.from({length: object.h.length}, () => string), // h
-      uint16, // object header (d)
-      int16, // one
-      float32, // two
-      uint16, // object header (three)
-      int16, // about
-      int32, // how
-      uint16, // schema header
-      uint8, // schema id
-      uint8, // x
-      uint8, // y
-      uint16, // array header
-      uint16, // array num elements
-      // e: schema header, schema id, x, y
-      ...Array.from({length: object.e.length}, () => [uint16, uint8, uint8, uint8]).flat(),
+      [uint8, 1], // buffer type
+      [uint16, SCHEMA_HEADER], // schema header
+      [uint8, state.id], // schema id
+      [int8, object.a], // a
+      [float32, object.i], // i
+      [uint16, ARRAY_HEADER], // array header (g)
+      [uint16, object.g.length], // array num elements
+      ...object.g.slice().map((value) => [uint16, value]), // g
+      [string, object.b], // b
+      [uint16, ARRAY_HEADER], // array header (h)
+      [uint16, object.h.length], // aray num elements
+      ...object.h.slice().map((value) => [string, value]), // h
+      [uint16, OBJECT_HEADER], // object header (d)
+      [int16, object.d.one], // one
+      [float32, object.d.two], // two
+      [uint16, OBJECT_HEADER], // object header (three)
+      [int16, object.d.three.about], // about
+      [int32, object.d.three.how], // how
+      [uint16, SCHEMA_HEADER], // schema header (f)
+      [uint8, nested.id], // schema id
+      [uint8, object.f.x], // x
+      [uint8, object.f.y], // y
+      [uint16, ARRAY_HEADER], // array header (e)
+      [uint16, object.e.length], // array num elements
+      ...object.e.slice().flatMap((value) => [
+        [uint16, SCHEMA_HEADER], // schema header
+        [uint8, nested.id], // schema id
+        [uint8, value.x], // x
+        [uint8, value.y], // y
+      ]),
     ];
-    for (const view of order) {
-      const result = dataView;
-      expect(result).toStrictEqual()
-      position += view.bytes;
+
+    let offset = 0;
+    for (const [view, expectedValue] of order) {
+      if (!isBufferView(view)) {
+        // Typescript improperly widens tuple type at array spread, this should never run
+        throw new Error('Not buffer view.');
+      }
+      if (view.type === 'String') {
+        const startingDoubleQuote = uint8Array[offset]; // Char code of " is 34
+        const endQuoteIndex = uint8Array.indexOf(34, offset + 1);
+        if (startingDoubleQuote !== 34 || endQuoteIndex < offset) {
+          throw new Error('Buffer contains invalid string.');
+        }
+        const result = decoder.decode(uint8Array.subarray(offset + 1, endQuoteIndex));
+        expect(result).toStrictEqual(expectedValue);
+        offset = endQuoteIndex + 1;
+      } else {
+        let result = dataView[`get${view.type}` as const](offset);
+        if (view.type === 'Float32' || view.type === 'Float64') {
+          result = Number(result.toPrecision(view.type === 'Float32' ? 7 : 16));
+        }
+        expect(result).toStrictEqual(expectedValue);
+        offset += view.bytes;
+      }
     }
-
-    // const rootId = deserializeString(dataView, string, 0, 5);
-    expect(rootId).toStrictEqual(stateModel.schema.id);
-
-    // // First property `a`
-    // expect(dataView.getUint8(5)).toStrictEqual(2);
-
-    // // Second property `b`
-    // const propB = deserializeString(dataView, string, 6, 9);
-    // expect(propB).toStrictEqual('wow');
-
-    // Third property `g`
   });
 
   it('Should deserialize uint8', () => {
@@ -217,6 +236,8 @@ describe('Model class', () => {
     const result = model.fromBuffer(buffer, Model.BUFFER_OBJECT);
     expect(result).toStrictEqual(object);
   });
+
+  // Should deserialize BufferView array, string array, nested object, nested Schema, nested Schema array, all
 
   // it('Should deserialize any BufferView type', () => {
   //   const simple = Model.fromSchemaDefinition('object', {

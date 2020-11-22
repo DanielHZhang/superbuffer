@@ -61,16 +61,11 @@ export class BufferManager {
    * @param newBuffer Specific ArrayBuffer instance, otherwise a default will be used.
    */
   public refresh(newBuffer?: ArrayBuffer): void {
-    if (newBuffer) {
+    if (newBuffer || this._offset > 0) {
       this._offset = 0;
-      this._buffer = newBuffer;
+      this._buffer = newBuffer || new ArrayBuffer(this._maxBufferSize);
       this._dataView = new DataView(this._buffer);
-    } else {
-      if (this._offset > 0) {
-        this._offset = 0;
-        this._buffer = new ArrayBuffer(this._maxBufferSize);
-        this._dataView = new DataView(this._buffer);
-      }
+      this._uint8Array = new Uint8Array(this._buffer);
     }
   }
 
