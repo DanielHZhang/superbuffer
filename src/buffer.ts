@@ -134,20 +134,20 @@ export class BufferManager {
           throw new Error('Buffer contains invalid string.');
         }
         const result = this._textDecoder.decode(
-          this._uint8Array.subarray(this._offset, endQuoteIndex - 1)
+          this._uint8Array.subarray(this._offset + 1, endQuoteIndex)
         );
         this._offset = endQuoteIndex + 1;
         return result;
       }
+      case 'Float32':
+      case 'Float64': {
+        const result = this._dataView[`get${bufferView.type}` as const](this._offset);
+        this._offset += bufferView.bytes;
+        // Float32 has 7 significant digits, Float64 has 16 significant digits
+        return Number(result.toPrecision(bufferView.type === 'Float32' ? 7 : 16));
+      }
       default: {
         const result = this._dataView[`get${bufferView.type}` as const](this._offset);
-        if (typeof result === 'number') {
-          if (bufferView.type === 'Float32') {
-            return Number(result.toPrecision(7)); // Float32 has 7 significant digits
-          } else if (bufferView.type === 'Float64') {
-            return Number(result.toPrecision(16)); // Float64 has 16 significant digits
-          }
-        }
         this._offset += bufferView.bytes;
         return result;
       }
