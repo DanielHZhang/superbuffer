@@ -9,7 +9,7 @@ export class BufferManager {
   /**
    * Max buffer size for a serialized object. Default: 1 megabyte.
    */
-  protected readonly _maxBufferSize: number;
+  public readonly maxByteSize: number;
   /**
    * Internal ArrayBuffer reference.
    */
@@ -47,8 +47,8 @@ export class BufferManager {
    */
   public constructor(bufferSize?: number) {
     this._offset = 0;
-    this._maxBufferSize = bufferSize ?? 1e6;
-    this._buffer = new ArrayBuffer(this._maxBufferSize);
+    this.maxByteSize = bufferSize ?? 1e6;
+    this._buffer = new ArrayBuffer(this.maxByteSize);
     this._dataView = new DataView(this._buffer);
     this._uint8Array = new Uint8Array(this._buffer);
     this._textEncoder = new TextEncoder();
@@ -63,7 +63,6 @@ export class BufferManager {
     this._offset = 0;
     if (newBuffer) {
       this._uint8Array.set(new Uint8Array(newBuffer));
-      //
     }
     // if (newBuffer || this._offset > 0) {
     //   this._offset = 0;

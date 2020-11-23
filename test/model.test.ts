@@ -343,41 +343,6 @@ describe('Model class', () => {
     });
   });
 
-  it('Should deserialize any valid Schema definition', () => {
-    // const simple = Model.fromSchemaDefinition('object', {
-    //   w: string,
-    //   x: uint8,
-    //   y: uint16,
-    //   z: uint32,
-    //   a: uint64,
-    //   b: int8,
-    //   c: int16,
-    //   d: int32,
-    //   e: int64,
-    //   f: float32,
-    //   g: float64,
-    // });
-    // const object: ExtractSchemaObject<typeof simple> = {
-    //   y: 20,
-    //   x: 10,
-    //   a: BigInt(1.8e18),
-    //   z: 4294967294,
-    //   f: 1.1234567,
-    //   w: 'wow some very sick big long string',
-    //   b: -128,
-    //   c: -32760,
-    //   d: -2147483648,
-    //   e: BigInt(-9007199254740991),
-    //   g: 3.141592653589123,
-    // };
-    // const buffer = simple.toBuffer(object);
-    // const result = simple.fromBuffer(buffer, Model.BUFFER_OBJECT);
-    // for (const key in object) {
-    //   // @ts-expect-error Required to avoid jest BigInt issues.
-    //   expect(result[key]).toStrictEqual<Serializable>(object[key]);
-    // }
-  });
-
   it('Should handle empty data', () => {
     // const playerSchema = new Schema('player', {
     //   id: uint8,

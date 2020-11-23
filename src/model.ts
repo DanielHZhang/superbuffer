@@ -75,10 +75,7 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
       this._buffer.append(uint8, Model.BUFFER_OBJECT);
       this._buffer.append(uint16, SCHEMA_HEADER);
       this._buffer.append(uint8, this.schema.id);
-      // console.log('before serialize:', this._buffer._buffer, this._buffer.offset);
-      // console.log('before serialize of:', this._buffer._dataView.getUint16(1));
       this.serialize(objectOrArray, this.schema.struct);
-      // console.log('after serialize:', this._buffer._buffer, this._buffer.offset);
     }
     return this._buffer.finalize();
   }
@@ -93,10 +90,10 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
   public fromBuffer(buffer: ArrayBuffer, expect: typeof Model.BUFFER_OBJECT): SchemaObject<T>;
   public fromBuffer(buffer: ArrayBuffer, expect: typeof Model.BUFFER_ARRAY): SchemaObject<T>[];
   public fromBuffer(buffer: ArrayBuffer, expect?: number): SchemaObject<T> | SchemaObject<T>[] {
+    if (buffer.byteLength > this._buffer.maxByteSize) {
+      throw new Error('Buffer received exceeds max allocation size.');
+    }
     this._buffer.refresh(buffer);
-
-    // console.log('offset:', this._buffer.offset);
-    // console.log('header:', this._buffer._dataView.getUint8(this._buffer.offset));
 
     // Determine if structure is object or array
     const header = this._buffer.read(uint8);
@@ -105,10 +102,6 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
     }
 
     // Ensure the root model id matches this model
-    // console.log('offset:', this._buffer.offset);
-    // console.log('schemaheader:', this._buffer._dataView.getUint16(this._buffer.offset));
-    // console.log('id:', this.schema.id, this._buffer._dataView.getUint8(this._buffer.offset + 2));
-    // console.log('arbuf:', this._buffer._buffer);
     if (
       this._buffer.read(uint16) !== SCHEMA_HEADER ||
       this._buffer.read(uint8) !== this.schema.id

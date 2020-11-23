@@ -89,7 +89,8 @@ describe('Benchmark', () => {
       deltas.push(perfEnd - perfStart);
       Schema.instances.delete(i.toString());
     }
-    console.info(`Model creation time:
+    console.info(`Model.fromSchemaDefinition():
+    Ops/sec: ${opsPerSec(deltas).toPrecision(5)}
     Average: ${average(deltas).toPrecision(5)}ms
     Median: ${median(deltas).toPrecision(5)}ms`);
   });
@@ -154,6 +155,7 @@ describe('Benchmark', () => {
       ],
     },
   };
+  const snapshotBuffer = snapshotModel.toBuffer(snapshot);
 
   it('Should have performant object serialization', () => {
     for (let i = 0; i < iterations; i++) {
@@ -162,72 +164,34 @@ describe('Benchmark', () => {
       const perfEnd = performance.now();
       deltas.push(perfEnd - perfStart);
     }
-
-    console.info(`Model.toBuffer:
+    console.info(`Model.toBuffer():
+    Ops/sec: ${opsPerSec(deltas).toPrecision(5)}
     Average: ${average(deltas).toPrecision(5)}ms
     Median: ${median(deltas).toPrecision(5)}ms`);
-    // console.info(`Ops/sec: ${Math.round(opsPerSec(deltas))}`);
-  });
-
-  it('Should be faster than before', () => {
-    const playerModel = Model.fromSchemaDefinition('player', {
-      id: uint8,
-      x: int16,
-      y: int16,
-    });
-    const snapshotModel = Model.fromSchemaDefinition('snapshot', {
-      time: uint16,
-      data: {
-        players: [playerModel.schema],
-      },
-    });
-    const snap = {
-      time: 1234,
-      data: {
-        players: [
-          {id: 0, x: 22, y: 38},
-          {id: 1, x: -54, y: 7},
-        ],
-      },
-    };
-    const iterations = 100000;
-    const perfStart = performance.now();
-    let buffer;
-    let data = snap;
-    for (let i = 0; i < iterations; i++) {
-      buffer = snapshotModel.toBuffer(data);
-      data = snapshotModel.fromBuffer(buffer, Model.BUFFER_OBJECT);
-    }
-
-    const perfEnd = performance.now();
-    const delta = perfEnd - perfStart;
-    console.log(`Execution time: ${delta}`);
   });
 
   it('Should have performant object deserialization', () => {
-    // const wow = snapshotModel.toBuffer(snapshot);
-    // const result = snapshotModel.fromBuffer(wow);
-    // console.log(result);
-    // let buffer;
-    // let data = snapshot;
-    // const iter = 100000;
-    // const perfStart = performance.now();
-    // for (let i = 0; i < iter; i++) {
-    //   buffer = snapshotModel.toBuffer(data);
-    //   data = snapshotModel.fromBuffer(buffer, Model.BUFFER_OBJECT);
-    // }
-    // const perfEnd = performance.now();
-    // const delta = perfEnd - perfStart;
-    // console.log(`Execution time: ${delta.toPrecision(5)}ms`);
-    // const iterations = 10000;
-    // const perfStart = performance.now();
-    // for (let i = 0; i < iterations; i++) {
-    //   buffer = snapshotModel.toBuffer(data);
-    //   data = snapshotModel.fromBuffer(buffer);
-    // }
-    // const perfEnd = performance.now();
-    // const delta = perfEnd - perfStart;
-    // console.log(`Execution time: ${delta.toFixed(3)}ms`);
-    // expect(JSON.stringify(data).length).toBe(JSON.stringify(snap).length);
+    for (let i = 0; i < iterations; i++) {
+      const perfStart = performance.now();
+      snapshotModel.fromBuffer(snapshotBuffer);
+      const perfEnd = performance.now();
+      deltas.push(perfEnd - perfStart);
+    }
+    console.info(`Model.fromBuffer():
+    Ops/sec: ${opsPerSec(deltas).toPrecision(5)}
+    Average: ${average(deltas).toPrecision(5)}ms
+    Median: ${median(deltas).toPrecision(5)}ms`);
+  });
+
+  it('Should have higher compression than JSON', () => {
+    const buffer = snapshotModel.toBuffer(snapshot);
+    const json = JSON.stringify(snapshot);
+    const jsonByteLength = Buffer.byteLength(json, 'utf-8');
+    const savings = (1 - buffer.byteLength / jsonByteLength) * 100;
+    expect(buffer.byteLength).toBeLessThan(jsonByteLength);
+    console.info(`Compression:
+    Original: ${jsonByteLength} bytes
+    Compressed: ${buffer.byteLength} bytes
+    Space savings: ${savings.toPrecision(2)}%`);
   });
 });
