@@ -113,8 +113,6 @@ describe('Model class', () => {
       [uint16, ARRAY_HEADER], // array header (e)
       [uint16, object.e.length], // array num elements
       ...object.e.slice().flatMap((value) => [
-        [uint16, SCHEMA_HEADER], // schema header
-        [uint8, nested.id], // schema id
         [uint8, value.x], // x
         [uint8, value.y], // y
       ]),

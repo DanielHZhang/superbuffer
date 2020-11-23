@@ -171,8 +171,6 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
         // Schema
         if (element instanceof Schema) {
           for (let i = 0; i < dataProp.length; i++) {
-            this._buffer.append(uint16, SCHEMA_HEADER);
-            this._buffer.append(uint8, element.id);
             this.serialize(dataProp[i], element.struct);
           }
         }
@@ -214,14 +212,6 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
         const results = [];
         if (element instanceof Schema) {
           for (let i = 0; i < numElements; i++) {
-            // TODO: probably not necessary to serialize and check for schema header and id for each element
-            this.assertSchemaHeader(element.id);
-            // if (
-            //   this._buffer.read(uint16) !== SCHEMA_HEADER ||
-            //   this._buffer.read(uint8) !== element.id
-            // ) {
-            //   throw new Error(`Expected schema header at position ${this._buffer.offset - 2}`);
-            // }
             results.push(this.deserialize(element.struct));
           }
         } else if (isBufferView(element)) {
@@ -236,12 +226,6 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
         let struct = structValue;
         if (structValue instanceof Schema) {
           this.assertSchemaHeader(structValue.id);
-          // if (
-          //   this._buffer.read(uint16) !== SCHEMA_HEADER ||
-          //   this._buffer.read(uint8) !== structValue.id
-          // ) {
-          //   throw new Error(`Expected schema header at position ${this._buffer.offset - 3}`);
-          // }
           struct = structValue.struct;
         } else {
           if (this._buffer.read(uint16) !== OBJECT_HEADER) {
