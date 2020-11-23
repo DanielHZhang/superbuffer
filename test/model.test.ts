@@ -1,4 +1,5 @@
 import {
+  boolean,
   BufferView,
   ExtractSchemaObject,
   float32,
@@ -234,6 +235,14 @@ describe('Model class', () => {
     expect(result).toStrictEqual(object);
   });
 
+  it('Should deserialize boolean', () => {
+    const model = Model.fromSchemaDefinition('test', {x: boolean, y: boolean});
+    const object = {x: true, y: false};
+    const buffer = model.toBuffer(object);
+    const result = model.fromBuffer(buffer, Model.BUFFER_OBJECT);
+    expect(result).toStrictEqual(object);
+  });
+
   it('Should deserialize BufferView array', () => {
     const model = Model.fromSchemaDefinition('test', {
       x: [int16],
@@ -406,9 +415,6 @@ describe('Model class', () => {
       },
     };
     const buffer = snapshotModel.toBuffer(snapshot);
-    // const dataL = JSON.stringify(snapshotModel.fromBuffer(buffer)).length;
-    // const snapL = JSON.stringify(snap).length;
-    // const emptiesL = '"emptyArr":[],"emptyObj":{},'.length;
-    // expect(dataL).toBe(snapL - emptiesL);
+    expect(snapshotModel.fromBuffer(buffer)).toStrictEqual(snapshot);
   });
 });

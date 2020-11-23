@@ -8,16 +8,16 @@ describe('Schema class', () => {
   it('Should sort properties of the same type alphabetically', () => {
     // Only typed views in schema
     const onlyTypedViews = new Schema('primatives', {
-      b: string,
       a: uint8,
       c: uint32,
     });
     const keyOrder = Object.keys(onlyTypedViews.struct);
-    expect(keyOrder).toStrictEqual(['a', 'b', 'c']);
+    expect(keyOrder).toStrictEqual(['a', 'c']);
 
     // Only objects in schema
     const onlyObjects = new Schema('objects', {
       c: {
+        g: uint16,
         f: string,
       },
       b: {
@@ -31,8 +31,9 @@ describe('Schema class', () => {
       },
     });
     expect(Object.keys(onlyObjects.struct)).toStrictEqual(['a', 'b', 'c']);
-    expect(Object.keys(onlyObjects.struct.b)).toStrictEqual(['x', 'y', 'z']);
     expect(Object.keys(onlyObjects.struct.a)).toStrictEqual(['d', 'e']);
+    expect(Object.keys(onlyObjects.struct.b)).toStrictEqual(['x', 'y', 'z']);
+    expect(Object.keys(onlyObjects.struct.c)).toStrictEqual(['g', 'f']);
 
     // Only nested schemas in schema
     const nested = new Schema('nested', {y: uint8, x: uint8});

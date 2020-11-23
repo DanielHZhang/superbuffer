@@ -80,40 +80,34 @@ export class BufferManager {
    * @param data Data to be appended to the DataView.
    */
   public append(bufferView: BufferView, data: Serializable): void {
-    switch (bufferView.type) {
-      case 'String': {
-        this._dataView.setUint8(this._offset, 34); // Wrap in double quotes
-        this._offset += uint8.bytes;
-        const encoded = this._textEncoder.encode(data.toString());
-        this._uint8Array.set(encoded, this._offset);
-        this._offset += encoded.byteLength;
-        this._dataView.setUint8(this._offset, 34); // Wrap in double quotes
-        this._offset += uint8.bytes;
-        return;
-      }
-      case 'BigInt64':
-      case 'BigUint64': {
-        this._dataView[`set${bufferView.type}` as const](
-          this._offset,
-          typeof data === 'bigint' ? data : BigInt(data)
-        );
-        this._offset += bufferView.bytes;
-        return;
-      }
-      default: {
-        if (typeof data !== 'number') {
-          throw new Error('Number expected.');
-        }
-        this._dataView[`set${bufferView.type}` as const](
-          this._offset,
-          Number.isInteger(data)
-            ? data
-            : Number(data.toPrecision(bufferView.type === 'Float32' ? 7 : 16))
-        );
-        this._offset += bufferView.bytes;
-        return;
-      }
+    if (bufferView.type === 'String') {
+      this._dataView.setUint8(this._offset, 34); // Wrap in double quotes
+      this._offset += uint8.bytes;
+      const encoded = this._textEncoder.encode(data.toString());
+      this._uint8Array.set(encoded, this._offset);
+      this._offset += encoded.byteLength;
+      this._dataView.setUint8(this._offset, 34); // Wrap in double quotes
+      this._offset += uint8.bytes;
+      return;
     }
+    if (bufferView.type === 'Boolean') {
+      this._dataView.setUint8(this._offset, data === true ? 1 : 0);
+    } else {
+      switch (bufferView.type) {
+        case 'BigInt64':
+        case 'BigUint64': {
+          data = typeof data === 'bigint' ? data : BigInt(data);
+          break;
+        }
+        case 'Float32':
+        case 'Float64': {
+          data = Number(Number(data).toPrecision(bufferView.type === 'Float32' ? 7 : 16));
+          break;
+        }
+      }
+      this._dataView[`set${bufferView.type}` as const](this._offset, data as never);
+    }
+    this._offset += bufferView.bytes;
   }
 
   /**
@@ -126,31 +120,30 @@ export class BufferManager {
   public read(bufferView: BufferView<number>): number;
   public read(bufferView: BufferView<bigint>): bigint;
   public read(bufferView: BufferView): Serializable {
-    switch (bufferView.type) {
-      case 'String': {
-        const startingDoubleQuote = this._uint8Array[this._offset]; // Char code of " is 34
-        const endQuoteIndex = this._uint8Array.indexOf(34, this._offset + 1);
-        if (startingDoubleQuote !== 34 || endQuoteIndex < this._offset) {
-          throw new Error('Buffer contains invalid string.');
-        }
-        const result = this._textDecoder.decode(
-          this._uint8Array.subarray(this._offset + 1, endQuoteIndex)
-        );
-        this._offset = endQuoteIndex + 1;
-        return result;
+    let result: Serializable;
+    let newOffset = this._offset + bufferView.bytes;
+    // String
+    if (bufferView.type === 'String') {
+      const startingDoubleQuote = this._uint8Array[this._offset]; // Char code of " is 34
+      const endQuoteIndex = this._uint8Array.indexOf(34, this._offset + 1);
+      if (startingDoubleQuote !== 34 || endQuoteIndex < this._offset) {
+        throw new Error('Buffer contains invalid string.');
       }
-      case 'Float32':
-      case 'Float64': {
-        const result = this._dataView[`get${bufferView.type}` as const](this._offset);
-        this._offset += bufferView.bytes;
-        // Float32 has 7 significant digits, Float64 has 16 significant digits
-        return Number(result.toPrecision(bufferView.type === 'Float32' ? 7 : 16));
-      }
-      default: {
-        const result = this._dataView[`get${bufferView.type}` as const](this._offset);
-        this._offset += bufferView.bytes;
-        return result;
+      result = this._textDecoder.decode(this._uint8Array.subarray(this._offset + 1, endQuoteIndex));
+      newOffset = endQuoteIndex + 1;
+    }
+    // Boolean
+    else if (bufferView.type === 'Boolean') {
+      result = Boolean(this._dataView.getUint8(this._offset));
+    }
+    // Number
+    else {
+      result = this._dataView[`get${bufferView.type}` as const](this._offset);
+      if (bufferView.type === 'Float32' || bufferView.type === 'Float64') {
+        result = Number(Number(result).toPrecision(bufferView.type === 'Float32' ? 7 : 16));
       }
     }
+    this._offset = newOffset;
+    return result;
   }
 }

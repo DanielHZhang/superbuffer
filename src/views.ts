@@ -89,9 +89,17 @@ export const float32 = float(32);
 export const float64 = float(64);
 
 /**
- * `string`: UTF-8 encoding (Uint8Array)
+ * `string`: UTF-8 encoding (variable byte length of Uint8Array)
  */
 export const string: BufferView<string> = {
   type: 'String' as const,
+  bytes: 1,
+};
+
+/**
+ * `boolean`: True (1) and false (0) (1 byte)
+ */
+export const boolean: BufferView<boolean> = {
+  type: 'Boolean' as const,
   bytes: 1,
 };

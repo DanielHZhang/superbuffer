@@ -4,30 +4,21 @@ import type {Schema} from './schema';
 /* eslint-disable @typescript-eslint/consistent-indexed-object-style */
 
 /**
- * Number data.
- */
-type TNumber = 'Uint8' | 'Uint16' | 'Uint32' | 'Int8' | 'Int16' | 'Int32' | 'Float32' | 'Float64';
-
-/**
- * Bigint data.
- */
-type TBigInt = 'BigInt64' | 'BigUint64';
-
-/**
- * String data.
- */
-type TString = 'String';
-
-/**
  * A type that can be serialized into ArrayBuffer.
  */
-export type Serializable = string | number | bigint;
+export type Serializable = string | number | bigint | boolean;
 
 /**
  * Defines a TypedArray within an ArrayBuffer.
  */
 export type BufferView<T extends Serializable = Serializable> = {
-  readonly type: T extends string ? TString : T extends number ? TNumber : TBigInt;
+  readonly type: T extends string
+    ? 'String'
+    : T extends boolean
+    ? 'Boolean'
+    : T extends number
+    ? 'Uint8' | 'Uint16' | 'Uint32' | 'Int8' | 'Int16' | 'Int32' | 'Float32' | 'Float64'
+    : 'BigInt64' | 'BigUint64';
   readonly bytes: number;
 };
 

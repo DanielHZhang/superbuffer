@@ -13,7 +13,12 @@ export function isObject<T extends Record<any, any>>(value: any): value is T {
  * @param value Value to be tested.
  */
 export function isSerializable(value: any): value is Serializable {
-  return typeof value === 'string' || typeof value === 'number' || typeof value === 'bigint';
+  return (
+    typeof value === 'string' ||
+    typeof value === 'number' ||
+    typeof value === 'bigint' ||
+    typeof value === 'boolean'
+  );
 }
 
 /**
