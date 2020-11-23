@@ -8,7 +8,7 @@ export class Schema<T extends Record<string, unknown> = Record<string, unknown>>
   /**
    * Map that contains references to all Schema instances.
    */
-  public static readonly _schemas = new Map<string, Schema>();
+  public static readonly instances = new Map<string, Schema>();
   /**
    * Id of the schema.
    */
@@ -30,14 +30,14 @@ export class Schema<T extends Record<string, unknown> = Record<string, unknown>>
   public constructor(name: string, struct: SchemaDefinition<T>) {
     this.name = name;
     this.struct = Schema.definition(struct);
-    this.id = Schema._schemas.size;
+    this.id = Schema.instances.size;
 
     // Ensure schema with same name does not exist
-    if (Schema._schemas.get(name)) {
+    if (Schema.instances.get(name)) {
       throw new Error(`A Schema with the name "${name}" already exists.`);
     } else {
-      Schema._schemas.set(name, this);
-      if (Schema._schemas.size > 255) {
+      Schema.instances.set(name, this);
+      if (Schema.instances.size > 255) {
         throw new Error('The maximum number of Schema instances (255) has been reached.');
       }
     }
@@ -56,7 +56,7 @@ export class Schema<T extends Record<string, unknown> = Record<string, unknown>>
    * @param name Name of the Schema instance.
    */
   public static getInstanceByName(name: string): Schema | undefined {
-    return this._schemas.get(name);
+    return this.instances.get(name);
   }
 
   /**

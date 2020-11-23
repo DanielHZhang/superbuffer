@@ -60,12 +60,17 @@ export class BufferManager {
    * @param newBuffer Specific ArrayBuffer instance, otherwise a default will be used.
    */
   public refresh(newBuffer?: ArrayBuffer): void {
-    if (newBuffer || this._offset > 0) {
-      this._offset = 0;
-      this._buffer = newBuffer || new ArrayBuffer(this._maxBufferSize);
-      this._dataView = new DataView(this._buffer);
-      this._uint8Array = new Uint8Array(this._buffer);
+    this._offset = 0;
+    if (newBuffer) {
+      this._uint8Array.set(new Uint8Array(newBuffer));
+      //
     }
+    // if (newBuffer || this._offset > 0) {
+    //   this._offset = 0;
+    //   this._buffer = newBuffer || new ArrayBuffer(this._maxBufferSize);
+    //   this._dataView = new DataView(this._buffer);
+    //   this._uint8Array = new Uint8Array(this._buffer);
+    // }
   }
 
   /**
@@ -81,6 +86,7 @@ export class BufferManager {
    * @param bufferView BufferView to define the type appended.
    * @param data Data to be appended to the DataView.
    */
+  // public append(bufferView: BufferView<string>, data: string): string;
   public append(bufferView: BufferView, data: Serializable): void {
     switch (bufferView.type) {
       case 'String': {
@@ -103,7 +109,15 @@ export class BufferManager {
         return;
       }
       default: {
-        this._dataView[`set${bufferView.type}` as const](this._offset, Number(data));
+        if (typeof data !== 'number') {
+          throw new Error('Number expected.');
+        }
+        this._dataView[`set${bufferView.type}` as const](
+          this._offset,
+          Number.isInteger(data)
+            ? data
+            : Number(data.toPrecision(bufferView.type === 'Float32' ? 7 : 16))
+        );
         this._offset += bufferView.bytes;
         return;
       }

@@ -1,6 +1,6 @@
 {
-  "name": "array-buffer-schema",
-  "version": "0.2.0",
+  "name": "superbuffer",
+  "version": "0.3.0",
   "author": "Daniel Zhang",
   "description": "Convert between objects and ArrayBuffers with ease",
   "license": "MIT",
@@ -17,19 +17,20 @@
     "lib/**/*"
   ],
   "scripts": {
-    "build": "rimraf lib && tsc --project tsconfig.prod.json",
+    "build": "rm -rf lib && tsc --project tsconfig.prod.json",
+    "flamegraph": "0x -o cool.js",
     "test": "jest --collectCoverage",
     "test:one": "jest -t",
     "test:watch": "jest --watch"
   },
   "devDependencies": {
+    "0x": "^4.10.2",
     "@supersede/eslint-config": "^1.1.2",
     "@supersede/prettier-config": "^1.0.1",
     "eslint": "^7.13.0",
     "jest": "^26.1.0",
     "nodemark": "^0.3.0",
     "prettier": "^2.0.5",
-    "rimraf": "^3.0.2",
     "ts-jest": "^26.4.4",
     "typescript": "^4.1.2"
   },

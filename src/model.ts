@@ -130,11 +130,8 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
   protected deserialize(struct: Record<string, any>): Record<string, any> {
     const data: Record<string, any> = {};
     const keys = Object.keys(struct);
-    // let position = startPosition;
-
     for (let i = 0; i < keys.length; i++) {
       const structValue = struct[keys[i]];
-      // console.log('struct val:', keys[i], structValue);
       // BufferView definition
       if (isBufferView(structValue)) {
         data[keys[i]] = this._buffer.read(structValue);
@@ -142,6 +139,7 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
       // Array definition
       else if (Array.isArray(structValue)) {
         // Confirm there is an array at the current position
+        // console.log(this._buffer._buffer, this._buffer.offset);
         if (this._buffer.read(uint16) !== ARRAY_HEADER) {
           throw new Error(`Expected array header at position ${this._buffer.offset - 2}`);
         }
@@ -149,7 +147,17 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
         const element = structValue[0];
         const results = [];
         if (element instanceof Schema) {
+          // console.log('before schema:', this._buffer._dataView.getUint16(this._buffer.offset));
+          // console.log('before id:', this._buffer._dataView.getUint8(this._buffer.offset + 2));
+          // console.log('first schema el:', this._buffer._dataView.getUint8(this._buffer.offset + 2));
           for (let i = 0; i < numElements; i++) {
+            // TODO: probably not necessary to serialize and check for schema header and id for each element
+            if (
+              this._buffer.read(uint16) !== SCHEMA_HEADER ||
+              this._buffer.read(uint8) !== element.id
+            ) {
+              throw new Error(`Expected schema header at position ${this._buffer.offset - 2}`);
+            }
             results.push(this.deserialize(element.struct));
           }
         } else if (isBufferView(element)) {
@@ -178,7 +186,6 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
         data[keys[i]] = this.deserialize(struct);
       }
     }
-    // console.log('should return:', data);
     return data;
   }
 

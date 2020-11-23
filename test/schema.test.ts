@@ -2,8 +2,7 @@ import {float32, float64, int16, int8, Schema, string, uint16, uint32, uint64, u
 
 describe('Schema class', () => {
   beforeEach(() => {
-    // @ts-ignore 2341
-    Schema._schemas.clear();
+    Schema.instances.clear();
   });
 
   it('Should sort properties of the same type alphabetically', () => {
