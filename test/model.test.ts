@@ -337,40 +337,77 @@ describe('Model class', () => {
 
   it('Should deserialize nested Schema arrays', () => {
     const nested1 = new Schema('nested1', {foo: string});
-    const nested2 = new Schema('nested2', {bar: float64, lorem: nested1});
+    const nested2 = new Schema('nested2', {bar: float64, lorem: [nested1]});
     const model = Model.fromSchemaDefinition('test', {
-      x: nested1,
+      x: [nested1],
+      y: [nested2],
     });
+    const object: ExtractSchemaObject<typeof model> = {
+      x: [{foo: '1'}, {foo: '22'}, {foo: '333'}],
+      y: [
+        {bar: 123.456, lorem: [{foo: 'abcd'}, {foo: 'cdba'}]},
+        {bar: 0.991235, lorem: [{foo: 'hello'}]},
+        {bar: 123225.23425, lorem: [{foo: 'wow'}, {foo: 'very'}, {foo: 'cool'}]},
+      ],
+    };
+    const buffer = model.toBuffer(object);
+    expect(model.fromBuffer(buffer)).toStrictEqual(object);
   });
 
-  it('Should handle empty data', () => {
-    // const playerSchema = new Schema('player', {
-    //   id: uint8,
-    // });
-    // const botSchema = new Schema('bot', {
-    //   id: uint8,
-    // });
-    // const carSchema = new Schema('car', {
-    //   id: uint8,
-    // });
-    // const snapshotModel = Model.fromSchemaDefinition('snapshot', {
-    //   time: uint16,
-    //   data: {
-    //     emptyArr: [playerSchema],
-    //     emptyObj: botSchema,
-    //     superCar: carSchema,
-    //   },
-    // });
-    // const snap = {
-    //   data: {
-    //     emptyArr: [],
-    //     emptyObj: {},
-    //     superCar: {
-    //       id: 911,
-    //     },
-    //   },
-    // };
-    // const buffer = snapshotModel.toBuffer(snap);
+  it('Should deserialize array buffer type', () => {
+    const nested1 = new Schema('nested1', {foo: string});
+    const nested2 = new Schema('nested2', {bar: float64, lorem: [nested1]});
+    const model = Model.fromSchemaDefinition('test', {
+      x: [nested1],
+      y: [nested2],
+      z: {
+        a: nested2,
+        b: uint8,
+        c: string,
+      },
+    });
+    const object: ExtractSchemaObject<typeof model> = {
+      x: [{foo: '1'}, {foo: '22'}, {foo: '333'}],
+      y: [
+        {bar: 123.456, lorem: [{foo: 'abcd'}, {foo: 'cdba'}]},
+        {bar: 0.991235, lorem: [{foo: 'hello'}]},
+        {bar: 123225.23425, lorem: [{foo: 'wow'}, {foo: 'very'}, {foo: 'cool'}]},
+      ],
+      z: {
+        a: {
+          bar: 0.00662607004,
+          lorem: [{foo: '#i^gH%4=Qsyj[_5An~iXWR>V^d~w&B<jrBu/db:lL_F9HRfa9DPF{mtwEp!poK`GG'}],
+        },
+        b: 255,
+        c: 'testing 1 2 3',
+      },
+    };
+    const buffer = model.toBuffer([object, object, object, object]);
+    const results = model.fromBuffer(buffer, Model.BUFFER_ARRAY);
+    expect(results.length).toStrictEqual(4);
+    for (const result of results) {
+      expect(result).toStrictEqual(object);
+    }
+  });
+
+  it('Should handle empty arrays', () => {
+    const playerSchema = new Schema('player', {id: uint8});
+    const botSchema = new Schema('bot', {id: uint16});
+    const snapshotModel = Model.fromSchemaDefinition('snapshot', {
+      time: uint16,
+      data: {
+        players: [playerSchema],
+        bots: [botSchema],
+      },
+    });
+    const snapshot: ExtractSchemaObject<typeof snapshotModel> = {
+      time: 20,
+      data: {
+        players: [],
+        bots: [],
+      },
+    };
+    const buffer = snapshotModel.toBuffer(snapshot);
     // const dataL = JSON.stringify(snapshotModel.fromBuffer(buffer)).length;
     // const snapL = JSON.stringify(snap).length;
     // const emptiesL = '"emptyArr":[],"emptyObj":{},'.length;

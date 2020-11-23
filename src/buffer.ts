@@ -13,11 +13,11 @@ export class BufferManager {
   /**
    * Internal ArrayBuffer reference.
    */
-  public _buffer: ArrayBuffer;
+  protected _buffer: ArrayBuffer;
   /**
    * Internal DataView reference.
    */
-  public _dataView: DataView;
+  protected _dataView: DataView;
   /**
    * Current byte position in the DataView.
    */
@@ -46,8 +46,8 @@ export class BufferManager {
    * @param bufferSize The maximum size of the internal ArrayBuffer.
    */
   public constructor(bufferSize?: number) {
-    this._offset = 0;
     this.maxByteSize = bufferSize ?? 1e6;
+    this._offset = 0;
     this._buffer = new ArrayBuffer(this.maxByteSize);
     this._dataView = new DataView(this._buffer);
     this._uint8Array = new Uint8Array(this._buffer);
@@ -64,12 +64,6 @@ export class BufferManager {
     if (newBuffer) {
       this._uint8Array.set(new Uint8Array(newBuffer));
     }
-    // if (newBuffer || this._offset > 0) {
-    //   this._offset = 0;
-    //   this._buffer = newBuffer || new ArrayBuffer(this._maxBufferSize);
-    //   this._dataView = new DataView(this._buffer);
-    //   this._uint8Array = new Uint8Array(this._buffer);
-    // }
   }
 
   /**
@@ -85,7 +79,6 @@ export class BufferManager {
    * @param bufferView BufferView to define the type appended.
    * @param data Data to be appended to the DataView.
    */
-  // public append(bufferView: BufferView<string>, data: string): string;
   public append(bufferView: BufferView, data: Serializable): void {
     switch (bufferView.type) {
       case 'String': {

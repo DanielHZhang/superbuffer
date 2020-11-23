@@ -66,6 +66,7 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
     this._buffer.refresh();
     if (Array.isArray(objectOrArray)) {
       this._buffer.append(uint8, Model.BUFFER_ARRAY);
+      this._buffer.append(uint16, objectOrArray.length);
       this._buffer.append(uint16, SCHEMA_HEADER);
       this._buffer.append(uint8, this.schema.id);
       for (let i = 0; i < objectOrArray.length; i++) {
@@ -96,96 +97,51 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
     this._buffer.refresh(buffer);
 
     // Determine if structure is object or array
-    const header = this._buffer.read(uint8);
-    if (expect && expect !== header) {
-      throw new Error(`Expected ArrayBuffer structure ${expect} but got ${header}.`);
-    }
-
-    // Ensure the root model id matches this model
-    if (
-      this._buffer.read(uint16) !== SCHEMA_HEADER ||
-      this._buffer.read(uint8) !== this.schema.id
-    ) {
-      throw new Error("ArrayBuffer id does not match the id of this model's schema.");
+    const bufferType = this._buffer.read(uint8);
+    if (expect && expect !== bufferType) {
+      throw new Error(`Expected ArrayBuffer structure to match ${expect} but got ${bufferType}.`);
     }
 
     // Handle object
-    if (header === Model.BUFFER_OBJECT) {
-      // Start at position after the root id
+    if (bufferType === Model.BUFFER_OBJECT) {
+      this.assertSchemaHeader(this.schema.id);
       return this.deserialize(this.schema.struct) as SchemaObject<T>;
     }
     // Handle array
     else {
-      return [] as SchemaObject<T>[];
+      const numElements = this._buffer.read(uint16);
+      this.assertSchemaHeader(this.schema.id);
+      const results: SchemaObject<T>[] = [];
+      for (let i = 0; i < numElements; i++) {
+        results.push(this.deserialize(this.schema.struct) as SchemaObject<T>);
+      }
+      return results;
     }
   }
 
-  protected deserialize(struct: Record<string, any>): Record<string, any> {
-    const data: Record<string, any> = {};
-    const keys = Object.keys(struct);
-    for (let i = 0; i < keys.length; i++) {
-      const structValue = struct[keys[i]];
-      // BufferView definition
-      if (isBufferView(structValue)) {
-        data[keys[i]] = this._buffer.read(structValue);
-      }
-      // Array definition
-      else if (Array.isArray(structValue)) {
-        // Confirm there is an array at the current position
-        // console.log(this._buffer._buffer, this._buffer.offset);
-        if (this._buffer.read(uint16) !== ARRAY_HEADER) {
-          throw new Error(`Expected array header at position ${this._buffer.offset - 2}`);
-        }
-        const numElements = this._buffer.read(uint16);
-        const element = structValue[0];
-        const results = [];
-        if (element instanceof Schema) {
-          // console.log('before schema:', this._buffer._dataView.getUint16(this._buffer.offset));
-          // console.log('before id:', this._buffer._dataView.getUint8(this._buffer.offset + 2));
-          // console.log('first schema el:', this._buffer._dataView.getUint8(this._buffer.offset + 2));
-          for (let i = 0; i < numElements; i++) {
-            // TODO: probably not necessary to serialize and check for schema header and id for each element
-            if (
-              this._buffer.read(uint16) !== SCHEMA_HEADER ||
-              this._buffer.read(uint8) !== element.id
-            ) {
-              throw new Error(`Expected schema header at position ${this._buffer.offset - 2}`);
-            }
-            results.push(this.deserialize(element.struct));
-          }
-        } else if (isBufferView(element)) {
-          for (let i = 0; i < numElements; i++) {
-            results.push(this._buffer.read(element));
-          }
-        }
-        data[keys[i]] = results;
-      }
-      // Schema or object definition
-      else {
-        let struct = structValue;
-        if (structValue instanceof Schema) {
-          if (
-            this._buffer.read(uint16) !== SCHEMA_HEADER ||
-            this._buffer.read(uint8) !== structValue.id
-          ) {
-            throw new Error(`Expected schema header at position ${this._buffer.offset - 3}`);
-          }
-          struct = structValue.struct;
-        } else {
-          if (this._buffer.read(uint16) !== OBJECT_HEADER) {
-            throw new Error(`Expected object header at position ${this._buffer.offset - 2}`);
-          }
-        }
-        data[keys[i]] = this.deserialize(struct);
-      }
+  /**
+   * Ensure that the schema header and id are valid at the current buffer offset.
+   * @param id Schema id to be asserted.
+   */
+  protected assertSchemaHeader(id: number): void {
+    const schemaHeader = this._buffer.read(uint16);
+    const schemaId = this._buffer.read(uint8);
+    if (schemaHeader !== SCHEMA_HEADER) {
+      throw new Error(
+        `Expected schema header at offset ${this._buffer.offset - 3} but got ${schemaHeader}`
+      );
     }
-    return data;
+    if (schemaId !== id) {
+      throw new Error(
+        `Expected schema id ${id} at position ${this._buffer.offset - 1} but got ${schemaId}`
+      );
+    }
   }
 
   /**
    * Serialize data that adheres to the provided object structure.
    * @param data Data to be serialized.
-   * @param struct SchemaDefinition structure.
+   * @param struct Object structure in the schema definition.
    */
   protected serialize(data: Record<string, any>, struct: Record<string, any>): void {
     const keys = Object.keys(struct);
@@ -232,5 +188,69 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
         throw new Error('Unsupported data type does not conform to schema definition.');
       }
     }
+  }
+
+  /**
+   * Deserialize data from the ArrayBuffer that adheres to the provided object structure.
+   * @param struct Object structure in the schema definition.
+   */
+  protected deserialize(struct: Record<string, any>): Record<string, any> {
+    const data: Record<string, any> = {};
+    const keys = Object.keys(struct);
+    for (let i = 0; i < keys.length; i++) {
+      const structValue = struct[keys[i]];
+      // BufferView definition
+      if (isBufferView(structValue)) {
+        data[keys[i]] = this._buffer.read(structValue);
+      }
+      // Array definition
+      else if (Array.isArray(structValue)) {
+        // Confirm there is an array at the current position
+        if (this._buffer.read(uint16) !== ARRAY_HEADER) {
+          throw new Error(`Expected array header at position ${this._buffer.offset - 2}`);
+        }
+        const numElements = this._buffer.read(uint16);
+        const element = structValue[0];
+        const results = [];
+        if (element instanceof Schema) {
+          for (let i = 0; i < numElements; i++) {
+            // TODO: probably not necessary to serialize and check for schema header and id for each element
+            this.assertSchemaHeader(element.id);
+            // if (
+            //   this._buffer.read(uint16) !== SCHEMA_HEADER ||
+            //   this._buffer.read(uint8) !== element.id
+            // ) {
+            //   throw new Error(`Expected schema header at position ${this._buffer.offset - 2}`);
+            // }
+            results.push(this.deserialize(element.struct));
+          }
+        } else if (isBufferView(element)) {
+          for (let i = 0; i < numElements; i++) {
+            results.push(this._buffer.read(element));
+          }
+        }
+        data[keys[i]] = results;
+      }
+      // Schema or object definition
+      else {
+        let struct = structValue;
+        if (structValue instanceof Schema) {
+          this.assertSchemaHeader(structValue.id);
+          // if (
+          //   this._buffer.read(uint16) !== SCHEMA_HEADER ||
+          //   this._buffer.read(uint8) !== structValue.id
+          // ) {
+          //   throw new Error(`Expected schema header at position ${this._buffer.offset - 3}`);
+          // }
+          struct = structValue.struct;
+        } else {
+          if (this._buffer.read(uint16) !== OBJECT_HEADER) {
+            throw new Error(`Expected object header at position ${this._buffer.offset - 2}`);
+          }
+        }
+        data[keys[i]] = this.deserialize(struct);
+      }
+    }
+    return data;
   }
 }
