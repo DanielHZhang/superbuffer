@@ -1,12 +1,30 @@
-<div align="center">
+<h1 align="center">Superbuffer</h1>
 
-# Superbuffer
-
+<p align="center">
 A simple way to serialize JavaScript objects into ArrayBuffers for high compression on the wire.
+</p>
 
-[Introduction][intro-url] • [Usage][usage-url] • [Data Types][data-types-url] • [Caveats][caveats-url]
+<br>
+<br>
 
-</div>
+<p align="center">
+  <a href="#introduction">Introduction</a> •
+  <a href="#introduction">Usage</a> •
+  <a href="#introduction">Data Types</a> •
+  <a href="#introduction">Caveats</a>
+</p>
+
+<p align="center">
+  <a href="">
+    <img src="https://badgen.net/bundlephobia/minzip/superbuffer?color=green&label=size">
+  </a>
+  <a href="">
+    <img src="https://badgen.net/npm/v/superbuffer?color=blue&label=version">
+  </a>
+  <a>
+    <img src="https://badgen.net/npm/node/superbuffer?color=blue">
+  </a>
+</p>
 
 ---
 
@@ -170,10 +188,6 @@ Superbuffer's views are mapped to their respective [TypedArray][typed-array-url]
 
 [MIT License][mit-url]
 
-[intro-url]: https://github.com/DanielHZhang/superbuffer#introduction
-[usage-url]: https://github.com/DanielHZhang/superbuffer#usage-api
-[data-types-url]: https://github.com/DanielHZhang/superbuffer#data-types
-[caveats-url]: https://github.com/DanielHZhang/superbuffer#caveats
 [tabs-url]: https://github.com/geckosio/typed-array-buffer-schema
 [typed-array-url]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Typed_arrays
 [mit-url]: https://github.com/DanielHZhang/superbuffer/blob/main/license.md
