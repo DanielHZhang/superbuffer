@@ -53,8 +53,7 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
    * @param buffer The ArrayBuffer from which to extract the id.
    */
   public static getIdFromBuffer(buffer: ArrayBuffer): number {
-    const dataView = new DataView(buffer);
-    return dataView.getUint8(3);
+    return new Uint8Array(buffer)[1];
   }
 
   /**

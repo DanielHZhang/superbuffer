@@ -13,6 +13,7 @@ import {
   float64,
   string,
   int32,
+  boolean,
 } from '../src';
 
 const median = (array: number[]): number => {
@@ -196,5 +197,50 @@ describe('Benchmark', () => {
     Original: ${jsonByteLength} bytes
     Compressed: ${buffer.byteLength} bytes
     Space savings: ${savings.toPrecision(2)}%`);
+  });
+
+  it('same', () => {
+    // const {int16, int32, uint8, uint32, uint64, float32, boolean, string} = views;
+    const playerSchema = new Schema({
+      id: uint8,
+      x: float32,
+      y: float32,
+      health: uint8,
+      alive: boolean,
+    });
+    const inputSchema = new Schema({action: int16, movement: int16});
+    const listSchema = new Schema({value: int32});
+    const snapshotModel = Model.fromSchemaDefinition({
+      time: uint64,
+      sequenceNumber: uint32,
+      input: inputSchema,
+      messages: [string],
+      data: {
+        list: [listSchema],
+        players: [playerSchema],
+      },
+    });
+    type Snapshot = ExtractSchemaObject<typeof snapshotModel>;
+    const snapshot: Snapshot = {
+      time: BigInt(Date.now()),
+      sequenceNumber: 438923,
+      input: {
+        action: -12,
+        movement: -4,
+      },
+      messages: ['hello', 'hi', 'how are you', 'im good, how are you', 'fine thank you'],
+      data: {
+        list: [{value: 1}, {value: 2}, {value: 3}, {value: 4}, {value: 5}],
+        players: [
+          {id: 14, x: 145.32, y: 98.1123, health: 99, alive: true},
+          {id: 15, x: 218.46, y: -14.0934, health: 100, alive: true},
+          {id: 0, x: 3289.554, y: -1432.0, health: 0, alive: false},
+        ],
+      },
+    };
+    // Client
+    const buffer = snapshotModel.toBuffer(snapshot); // Object -> ArrayBuffer
+    console.log(buffer.byteLength);
+    console.log(Buffer.byteLength(JSON.stringify({...snapshot, time: snapshot.time.toString()})));
   });
 });

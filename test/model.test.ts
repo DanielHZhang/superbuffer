@@ -22,8 +22,8 @@ describe('Model class', () => {
   });
 
   it('Should read the schema id from an ArrayBuffer', () => {
-    const model = Model.fromSchemaDefinition({id: uint8, x: uint16});
-    const buffer = model.toBuffer({id: 0, x: 1.2345});
+    const model = Model.fromSchemaDefinition({id: uint8, x: float32});
+    const buffer = model.toBuffer({id: 12, x: 1.2345});
     expect(Model.getIdFromBuffer(buffer)).toStrictEqual(model.schema.id);
   });
 

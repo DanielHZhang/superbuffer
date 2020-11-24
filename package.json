@@ -1,21 +1,24 @@
 {
   "name": "superbuffer",
-  "version": "0.3.0",
+  "version": "1.0.0",
   "author": "Daniel Zhang",
   "description": "A simple way to serialize JavaScript objects into ArrayBuffers for high compression on the wire.",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/DanielHZhang/array-buffer-schema"
+    "url": "https://github.com/DanielHZhang/superbuffer"
   },
   "bugs": {
-    "url": "https://github.com/DanielHZhang/array-buffer-schema/issues"
+    "url": "https://github.com/DanielHZhang/superbuffer/issues"
   },
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "files": [
     "lib/**/*"
   ],
+  "engines": {
+    "node": ">=4.0.0"
+  },
   "scripts": {
     "build": "rm -rf lib && tsc --project tsconfig.prod.json",
     "profile": "node --prof test/_flamegraph.js",
@@ -34,12 +37,25 @@
   },
   "keywords": [
     "array",
+    "arraybuffer",
+    "binary",
     "buffer",
-    "typedArray",
-    "arrayBuffer",
+    "compress",
+    "compression",
+    "data",
+    "dataview",
+    "interface",
+    "json",
+    "model",
+    "object",
     "serialize",
     "serialization",
     "schema",
-    "binary"
+    "struct",
+    "type",
+    "types",
+    "typed",
+    "typedarray",
+    "uint"
   ]
 }
