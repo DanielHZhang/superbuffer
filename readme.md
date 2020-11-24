@@ -16,7 +16,7 @@ Superbuffer makes it easy to serialize and deserialize data from ArrayBuffers ma
 
 Superbuffer was designed to balance the readability and flexibility JSON while maximizing compression of your data on the wire. It is especially useful in situations where a high volume and frequency of network traffic between clients is necessary (such as multiplayer networked games).
 
-### Installation
+## Installation
 
 **NPM**
 
@@ -80,6 +80,7 @@ Superbuffer can serialize any non-circular JSON structure:
 import {Schema, Model, views, ExtractSchemaObject} from 'superbuffer';
 
 const {int16, int32, uint8, uint32, uint64, float32, boolean, string} = views;
+
 const playerSchema = new Schema({
   id: uint8,
   x: float32,
@@ -87,8 +88,11 @@ const playerSchema = new Schema({
   health: uint8,
   alive: boolean,
 });
+
 const inputSchema = new Schema({action: int16, movement: int16});
+
 const listSchema = new Schema({value: int32});
+
 const snapshotModel = Model.fromSchemaDefinition({
   time: uint64,
   sequenceNumber: uint32,
@@ -99,7 +103,9 @@ const snapshotModel = Model.fromSchemaDefinition({
     players: [playerSchema],
   },
 });
+
 type Snapshot = ExtractSchemaObject<typeof snapshotModel>;
+
 const snapshot: Snapshot = {
   time: BigInt(Date.now()),
   sequenceNumber: 438923,
@@ -117,8 +123,11 @@ const snapshot: Snapshot = {
     ],
   },
 };
+
 /** Client */
-// buffer = 139 bytes vs. JSON.stringify(snapshot) = 430 bytes, 68% compression
+// JSON.stringify(snapshot) = 430 bytes
+// model.toBuffer(snapshot) = 139 bytes
+// 68% compression!
 const buffer = snapshotModel.toBuffer(snapshot); // Object to ArrayBuffer
 network.emit(buffer);
 
