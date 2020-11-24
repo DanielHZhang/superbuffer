@@ -1,4 +1,4 @@
-import type {BufferView, Serializable} from './types';
+import type {BufferView} from './types';
 
 /**
  * Test if an entity is an plain object.
@@ -6,19 +6,6 @@ import type {BufferView, Serializable} from './types';
  */
 export function isObject<T extends Record<any, any>>(value: any): value is T {
   return typeof value === 'object' && Object.getPrototypeOf(value) === Object.prototype;
-}
-
-/**
- * Test if an entity conforms to the Serializable type.
- * @param value Value to be tested.
- */
-export function isSerializable(value: any): value is Serializable {
-  return (
-    typeof value === 'string' ||
-    typeof value === 'number' ||
-    typeof value === 'bigint' ||
-    typeof value === 'boolean'
-  );
 }
 
 /**

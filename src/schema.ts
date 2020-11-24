@@ -8,15 +8,11 @@ export class Schema<T extends Record<string, unknown> = Record<string, unknown>>
   /**
    * Map that contains references to all Schema instances.
    */
-  public static readonly instances = new Map<string, Schema>();
+  public static readonly instances = new Map<number, Schema>();
   /**
    * Id of the schema.
    */
   public readonly id: number;
-  /**
-   * Name of the schema.
-   */
-  public readonly name: string;
   /**
    * Schema definition reference.
    */
@@ -27,16 +23,15 @@ export class Schema<T extends Record<string, unknown> = Record<string, unknown>>
    * @param name Unique name of the Schema.
    * @param struct SchemaDefinition structure of the Schema.
    */
-  public constructor(name: string, struct: SchemaDefinition<T>) {
-    this.name = name;
+  public constructor(struct: SchemaDefinition<T>, id: number = Schema.instances.size) {
     this.struct = Schema.definition(struct);
-    this.id = Schema.instances.size;
+    this.id = id;
 
     // Ensure schema with same name does not exist
-    if (Schema.instances.get(name)) {
-      throw new Error(`A Schema with the name "${name}" already exists.`);
+    if (Schema.instances.get(id)) {
+      throw new Error(`A Schema with the name "${id}" already exists.`);
     } else {
-      Schema.instances.set(name, this);
+      Schema.instances.set(id, this);
       if (Schema.instances.size > 255) {
         throw new Error('The maximum number of Schema instances (255) has been reached.');
       }
@@ -52,20 +47,17 @@ export class Schema<T extends Record<string, unknown> = Record<string, unknown>>
   }
 
   /**
-   * Get a Schema instance from the static map by its name.
-   * @param name Name of the Schema instance.
-   */
-  public static getInstanceByName(name: string): Schema | undefined {
-    return this.instances.get(name);
-  }
-
-  /**
    * Sort and validate the structure of the SchemaDefinition.
    * @param struct The SchemaDefinition structure to be sorted.
    */
   protected static sortStruct<T extends Record<string, any>>(struct: T): T {
+    const keys = Object.keys(struct);
+    if (keys.length <= 1) {
+      // sort() does not run if there is only 1 array element, ensure that element is validated
+      this.getSortPriority(struct[keys[0]]);
+    }
     // Find the type of each property of the struct
-    const sortedKeys = Object.keys(struct).sort((a, b) => {
+    const sortedKeys = keys.sort((a, b) => {
       const indexA = this.getSortPriority(struct[a]);
       const indexB = this.getSortPriority(struct[b]);
 
@@ -124,8 +116,6 @@ export class Schema<T extends Record<string, unknown> = Record<string, unknown>>
     if (isObject(item)) {
       return 4;
     }
-    throw new Error(
-      `Unsupported data type in schema definition: ${Array.isArray(item) ? item[0] : item}`
-    );
+    throw new Error(`Unsupported data type in schema definition: ${item}`);
   }
 }

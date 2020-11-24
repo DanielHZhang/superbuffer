@@ -7,7 +7,7 @@ describe('Schema class', () => {
 
   it('Should sort properties of the same type alphabetically', () => {
     // Only typed views in schema
-    const onlyTypedViews = new Schema('primatives', {
+    const onlyTypedViews = new Schema({
       a: uint8,
       c: uint32,
     });
@@ -15,7 +15,7 @@ describe('Schema class', () => {
     expect(keyOrder).toStrictEqual(['a', 'c']);
 
     // Only objects in schema
-    const onlyObjects = new Schema('objects', {
+    const onlyObjects = new Schema({
       c: {
         g: uint16,
         f: string,
@@ -36,8 +36,8 @@ describe('Schema class', () => {
     expect(Object.keys(onlyObjects.struct.c)).toStrictEqual(['g', 'f']);
 
     // Only nested schemas in schema
-    const nested = new Schema('nested', {y: uint8, x: uint8});
-    const root = new Schema('rootNestedSchemas', {
+    const nested = new Schema({y: uint8, x: uint8});
+    const root = new Schema({
       d: nested,
       a: nested,
       c: nested,
@@ -47,8 +47,8 @@ describe('Schema class', () => {
   });
 
   it('Should sort properties of different types in the proper order', () => {
-    const nested = new Schema('nested', {y: uint8, x: float64});
-    const state = new Schema('state', {
+    const nested = new Schema({y: uint8, x: float64});
+    const state = new Schema({
       e: [nested],
       b: string,
       g: [uint16],
@@ -66,10 +66,10 @@ describe('Schema class', () => {
     expect(Object.keys(state.struct)).toStrictEqual(['a', 'c', 'g', 'b', 'h', 'd', 'f', 'i', 'e']);
   });
 
-  it('Should throw when there are identical names', () => {
+  it('Should throw when the id already exists', () => {
     expect(() => {
-      new Schema('name', {x: uint8, y: int8});
-      new Schema('name', {y: int8, x: uint8});
+      new Schema({x: uint8, y: int8}, 1);
+      new Schema({y: int8, x: uint8}, 1);
     }).toThrow();
   });
 
@@ -87,7 +87,26 @@ describe('Schema class', () => {
       },
     };
     const definition = Schema.definition(obj);
-    const schema = new Schema('obj', obj);
+    const schema = new Schema(obj);
     expect(schema.struct).toStrictEqual(definition);
+  });
+
+  it('Should throw when the max number of schemas has been created', () => {
+    expect(() => {
+      for (let i = 0; i < 256; i++) {
+        new Schema({a: uint16});
+      }
+    }).toThrow();
+  });
+
+  it('Should throw on bad schema definition structure', () => {
+    expect(() => {
+      // @ts-expect-error
+      new Schema({a: 'bad type'});
+    }).toThrow();
+
+    expect(() => {
+      new Schema({});
+    }).toThrow();
   });
 });

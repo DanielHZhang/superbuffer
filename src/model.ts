@@ -1,8 +1,7 @@
 import {BufferManager} from './buffer';
-import {ARRAY_HEADER, OBJECT_HEADER, SCHEMA_HEADER} from './constants';
 import {Schema} from './schema';
 import {uint16, uint8} from './views';
-import {isObject, isSerializable, isBufferView} from './utils';
+import {isObject, isBufferView} from './utils';
 import type {SchemaObject, SchemaDefinition} from './types';
 
 /**
@@ -43,10 +42,10 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
    * @param struct Structure of the schema.
    */
   public static fromSchemaDefinition<T extends Record<string, unknown>>(
-    name: string,
-    struct: SchemaDefinition<T>
+    struct: SchemaDefinition<T>,
+    id?: number
   ): Model<T> {
-    return new Model(new Schema<T>(name, struct));
+    return new Model(new Schema<T>(struct, id));
   }
 
   /**
@@ -66,15 +65,13 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
     this._buffer.refresh();
     if (Array.isArray(objectOrArray)) {
       this._buffer.append(uint8, Model.BUFFER_ARRAY);
-      this._buffer.append(uint16, objectOrArray.length);
-      this._buffer.append(uint16, SCHEMA_HEADER);
       this._buffer.append(uint8, this.schema.id);
+      this._buffer.append(uint16, objectOrArray.length);
       for (let i = 0; i < objectOrArray.length; i++) {
         this.serialize(objectOrArray[i], this.schema.struct);
       }
     } else {
       this._buffer.append(uint8, Model.BUFFER_OBJECT);
-      this._buffer.append(uint16, SCHEMA_HEADER);
       this._buffer.append(uint8, this.schema.id);
       this.serialize(objectOrArray, this.schema.struct);
     }
@@ -92,50 +89,30 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
   public fromBuffer(buffer: ArrayBuffer, expect: typeof Model.BUFFER_ARRAY): SchemaObject<T>[];
   public fromBuffer(buffer: ArrayBuffer, expect?: number): SchemaObject<T> | SchemaObject<T>[] {
     if (buffer.byteLength > this._buffer.maxByteSize) {
-      throw new Error('Buffer received exceeds max allocation size.');
+      throw new Error('Buffer exceeds max allocation size.');
     }
     this._buffer.refresh(buffer);
 
     // Determine if structure is object or array
     const bufferType = this._buffer.read(uint8);
     if (expect && expect !== bufferType) {
-      throw new Error(`Expected ArrayBuffer structure to match ${expect} but got ${bufferType}.`);
+      throw new Error(`Expected buffer type to be ${expect} but got ${bufferType}.`);
+    }
+    if (this._buffer.read(uint8) !== this.schema.id) {
+      throw new Error(`Expected schema id to be ${this.schema.id}`);
     }
 
     // Handle object
     if (bufferType === Model.BUFFER_OBJECT) {
-      this.assertSchemaHeader(this.schema.id);
       return this.deserialize(this.schema.struct) as SchemaObject<T>;
     }
     // Handle array
-    else {
-      const numElements = this._buffer.read(uint16);
-      this.assertSchemaHeader(this.schema.id);
-      const results: SchemaObject<T>[] = [];
-      for (let i = 0; i < numElements; i++) {
-        results.push(this.deserialize(this.schema.struct) as SchemaObject<T>);
-      }
-      return results;
+    const numElements = this._buffer.read(uint16);
+    const results: SchemaObject<T>[] = [];
+    for (let i = 0; i < numElements; i++) {
+      results.push(this.deserialize(this.schema.struct) as SchemaObject<T>);
     }
-  }
-
-  /**
-   * Ensure that the schema header and id are valid at the current buffer offset.
-   * @param id Schema id to be asserted.
-   */
-  protected assertSchemaHeader(id: number): void {
-    const schemaHeader = this._buffer.read(uint16);
-    const schemaId = this._buffer.read(uint8);
-    if (schemaHeader !== SCHEMA_HEADER) {
-      throw new Error(
-        `Expected schema header at offset ${this._buffer.offset - 3} but got ${schemaHeader}`
-      );
-    }
-    if (schemaId !== id) {
-      throw new Error(
-        `Expected schema id ${id} at position ${this._buffer.offset - 1} but got ${schemaId}`
-      );
-    }
+    return results;
   }
 
   /**
@@ -149,24 +126,16 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
       const dataProp = data[keys[i]]; // Actual data values
       const schemaProp = struct[keys[i]]; // Corresponds with values from schema
       // BufferView
-      if (isBufferView(schemaProp) && isSerializable(dataProp)) {
+      if (isBufferView(schemaProp)) {
         this._buffer.append(schemaProp, dataProp);
       }
       // Schema
-      else if (schemaProp instanceof Schema && isObject(dataProp)) {
-        this._buffer.append(uint16, SCHEMA_HEADER);
-        this._buffer.append(uint8, schemaProp.id); // Serialize schema id before data
+      else if (schemaProp instanceof Schema) {
         this.serialize(dataProp, schemaProp.struct);
       }
-      // Object
-      else if (isObject(schemaProp) && isObject(dataProp)) {
-        this._buffer.append(uint16, OBJECT_HEADER); // Serialize object header before data
-        this.serialize(dataProp, schemaProp);
-      }
       // Array
-      else if (Array.isArray(schemaProp) && Array.isArray(dataProp)) {
-        this._buffer.append(uint16, ARRAY_HEADER); // Serialize array header before data
-        this._buffer.append(uint16, dataProp.length); // Serialize the number of elements
+      else if (Array.isArray(schemaProp)) {
+        this._buffer.append(uint16, dataProp.length);
         const element = schemaProp[0];
         // Schema
         if (element instanceof Schema) {
@@ -181,9 +150,9 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
           }
         }
       }
-      // Unsupported data type
-      else {
-        throw new Error('Unsupported data type does not conform to schema definition.');
+      // Object
+      else if (isObject(schemaProp)) {
+        this.serialize(dataProp, schemaProp);
       }
     }
   }
@@ -203,10 +172,6 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
       }
       // Array definition
       else if (Array.isArray(structValue)) {
-        // Confirm there is an array at the current position
-        if (this._buffer.read(uint16) !== ARRAY_HEADER) {
-          throw new Error(`Expected array header at position ${this._buffer.offset - 2}`);
-        }
         const numElements = this._buffer.read(uint16);
         const element = structValue[0];
         const results = [];
@@ -223,16 +188,9 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
       }
       // Schema or object definition
       else {
-        let struct = structValue;
-        if (structValue instanceof Schema) {
-          this.assertSchemaHeader(structValue.id);
-          struct = structValue.struct;
-        } else {
-          if (this._buffer.read(uint16) !== OBJECT_HEADER) {
-            throw new Error(`Expected object header at position ${this._buffer.offset - 2}`);
-          }
-        }
-        data[keys[i]] = this.deserialize(struct);
+        data[keys[i]] = this.deserialize(
+          structValue instanceof Schema ? structValue.struct : structValue
+        );
       }
     }
     return data;

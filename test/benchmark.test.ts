@@ -57,37 +57,40 @@ describe('Benchmark', () => {
   it('Should have performant model creation', () => {
     for (let i = 0; i < iterations; i++) {
       const perfStart = performance.now();
-      Model.fromSchemaDefinition(i.toString(), {
-        f: int8,
-        a: uint8,
-        g: int16,
-        p: {
-          r: [string],
-          q: [uint8],
-          s: {
-            t: int16,
+      Model.fromSchemaDefinition(
+        {
+          f: int8,
+          a: uint8,
+          g: int16,
+          p: {
+            r: [string],
+            q: [uint8],
+            s: {
+              t: int16,
+            },
           },
-        },
-        n: string,
-        b: {
-          d: uint32,
-          m: [string],
-          c: uint16,
-        },
-        h: {
-          l: [uint8],
-          j: {
-            u: [float32],
-            k: float64,
+          n: string,
+          b: {
+            d: uint32,
+            m: [string],
+            c: uint16,
           },
-          o: string,
-          i: float32,
+          h: {
+            l: [uint8],
+            j: {
+              u: [float32],
+              k: float64,
+            },
+            o: string,
+            i: float32,
+          },
+          e: uint64,
         },
-        e: uint64,
-      });
+        i
+      );
       const perfEnd = performance.now();
       deltas.push(perfEnd - perfStart);
-      Schema.instances.delete(i.toString());
+      Schema.instances.delete(i);
     }
     console.info(`Model.fromSchemaDefinition():
     Ops/sec: ${opsPerSec(deltas).toPrecision(5)}
@@ -95,20 +98,20 @@ describe('Benchmark', () => {
     Median: ${median(deltas).toPrecision(5)}ms`);
   });
 
-  const monsterSchema = new Schema('monster', {
+  const monsterSchema = new Schema({
     id: uint8,
     health: uint8,
     units: [int16],
   });
-  const playerSchema = new Schema('player', {
+  const playerSchema = new Schema({
     id: uint8,
     x: int16,
     y: int16,
     health: uint8,
   });
-  const inputSchema = new Schema('input', {action: uint8, movement: uint8});
-  const listSchema = new Schema('list', {value: int32});
-  const snapshotModel = Model.fromSchemaDefinition('snapshot', {
+  const inputSchema = new Schema({action: uint8, movement: uint8});
+  const listSchema = new Schema({value: int32});
+  const snapshotModel = Model.fromSchemaDefinition({
     time: uint16,
     sequenceNumber: uint32,
     input: inputSchema,
