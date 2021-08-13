@@ -1,0 +1,26 @@
+# Workflow for creating a new release and publishing it to NPM.
+name: publish
+
+on:
+  release:
+    # Trigger the workflow when a release is published (skipping pre-releases)
+    types: [released]
+
+jobs:
+  publish:
+    name: Publish the release to NPM
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          # "ref": the branch to check out.
+          # "github.event.release.target_commitish": the target branch of the release
+          ref: ${{ github.event.release.target_commitish }}
+      - uses: actions/setup-node@v2
+        with:
+          node-version: lts/*
+          registry-url: https://registry.npmjs.org/
+      - uses: danielhzhang/npm-publish-release@main
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
