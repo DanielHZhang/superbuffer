@@ -1,8 +1,9 @@
+import {BufferView, int16, int32, int8, SchemaData, uint32} from '.';
 import {BufferManager} from './buffer';
 import {Schema} from './schema';
+import type {SchemaDefinition, SchemaObject} from './types';
+import {isBufferView, isObject} from './utils';
 import {uint16, uint8} from './views';
-import {isObject, isBufferView} from './utils';
-import type {SchemaObject, SchemaDefinition} from './types';
 
 /**
  * The Model class provides an API for serializing and deserializing ArrayBuffers into objects
@@ -58,24 +59,64 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
 
   /**
    * Serialize an object or an array of objects defined by this Model's schema into an ArrayBuffer.
-   * @param objectOrArray The object or array of objects to be serialized.
+   * @param data The object or array of objects to be serialized.
    */
-  public toBuffer(objectOrArray: SchemaObject<T> | SchemaObject<T>[]): ArrayBuffer {
+  public toBuffer(data: SchemaData<T>, encoding: typeof uint8): Uint8Array;
+  public toBuffer(data: SchemaData<T>, encoding: typeof uint16): Uint16Array;
+  public toBuffer(data: SchemaData<T>, encoding: typeof uint32): Uint32Array;
+  // public toBuffer(data: SchemaData<T>, encoding: typeof uint64): ;
+  public toBuffer(data: SchemaData<T>, encoding: typeof int8): Int8Array;
+  public toBuffer(data: SchemaData<T>, encoding: typeof int16): Int16Array;
+  public toBuffer(data: SchemaData<T>, encoding: typeof int32): Int32Array;
+  public toBuffer(data: SchemaData<T>): ArrayBuffer;
+  public toBuffer(data: SchemaData<T>, encoding?: BufferView<number>): ArrayBuffer | Uint8Array {
     this._buffer.refresh();
-    if (Array.isArray(objectOrArray)) {
+    if (Array.isArray(data)) {
       this._buffer.append(uint8, Model.BUFFER_ARRAY);
       this._buffer.append(uint8, this.schema.id);
-      this._buffer.append(uint16, objectOrArray.length);
-      for (let i = 0; i < objectOrArray.length; i++) {
-        this.serialize(objectOrArray[i], this.schema.struct);
+      this._buffer.append(uint16, data.length);
+      for (let i = 0; i < data.length; i++) {
+        this.serialize(data[i], this.schema.struct);
       }
     } else {
       this._buffer.append(uint8, Model.BUFFER_OBJECT);
       this._buffer.append(uint8, this.schema.id);
-      this.serialize(objectOrArray, this.schema.struct);
+      this.serialize(data, this.schema.struct);
     }
-    return this._buffer.finalize();
+    if (encoding) {
+      switch (typeof encoding === 'string' ? encoding : encoding.type) {
+        case 'Uint8':
+          return new Uint8Array(this._buffer.internal, 0, this._buffer.offset);
+        case 'Uint16':
+          return new Uint16Array(this._buffer.internal, 0, this._buffer.offset);
+        default:
+          throw new Error('Invalid buffer encoding type.');
+      }
+    }
+    return this._buffer.internal.slice(0, this._buffer.offset);
+    // return this._buffer.finalize(encoding);
   }
+
+  // public toTypedArray(encoding: 'Uint8' | BufferView<number>): Uint8Array {
+  // 	return this.encode(objectOrArray, encoding);
+  // }
+
+  // protected encode(objectOrArray: SchemaObject<T> | SchemaObject<T>[], encoding?: BufferView) {
+  // 	this._buffer.refresh();
+  //   if (Array.isArray(objectOrArray)) {
+  //     this._buffer.append(uint8, Model.BUFFER_ARRAY);
+  //     this._buffer.append(uint8, this.schema.id);
+  //     this._buffer.append(uint16, objectOrArray.length);
+  //     for (let i = 0; i < objectOrArray.length; i++) {
+  //       this.serialize(objectOrArray[i], this.schema.struct);
+  //     }
+  //   } else {
+  //     this._buffer.append(uint8, Model.BUFFER_OBJECT);
+  //     this._buffer.append(uint8, this.schema.id);
+  //     this.serialize(objectOrArray, this.schema.struct);
+  //   }
+  // 	return this._buffer.finalize(encoding);
+  // }
 
   /**
    * Deserialize an ArrayBuffer to reconstruct the original object or array of objects defined by
@@ -83,10 +124,10 @@ export class Model<T extends Record<string, unknown> = Record<string, unknown>> 
    * @param buffer The ArrayBuffer to be deserialized.
    * @param expect The expected buffer type (i.e. `Model.BUFFER_OBJECT) for deserialization.
    */
-  public fromBuffer(buffer: ArrayBuffer): SchemaObject<T> | SchemaObject<T>[];
+  public fromBuffer(buffer: ArrayBuffer): SchemaData<T>;
   public fromBuffer(buffer: ArrayBuffer, expect: typeof Model.BUFFER_OBJECT): SchemaObject<T>;
   public fromBuffer(buffer: ArrayBuffer, expect: typeof Model.BUFFER_ARRAY): SchemaObject<T>[];
-  public fromBuffer(buffer: ArrayBuffer, expect?: number): SchemaObject<T> | SchemaObject<T>[] {
+  public fromBuffer(buffer: ArrayBuffer, expect?: number): SchemaData<T> {
     if (buffer.byteLength > this._buffer.maxByteSize) {
       throw new Error('Buffer exceeds max allocation size.');
     }

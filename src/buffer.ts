@@ -1,5 +1,6 @@
-import {uint8} from './views';
 import type {BufferView, Serializable} from './types';
+import {isBufferView} from './utils';
+import {uint8} from './views';
 
 /**
  * The BufferManager class provides an API for reading and writing to an ArrayBuffer via
@@ -41,6 +42,10 @@ export class BufferManager {
     return this._offset;
   }
 
+  public get internal(): ArrayBuffer {
+    return this._buffer;
+  }
+
   /**
    * Create a new BufferManager instance.
    * @param bufferSize The maximum size of the internal ArrayBuffer.
@@ -70,7 +75,15 @@ export class BufferManager {
    * Copy the contents of the internal ArrayBuffer (which may contain trailing empty sections)
    * into a new ArrayBuffer with no empty bytes.
    */
-  public finalize(): ArrayBuffer {
+  public finalize(encoding: typeof uint8): Uint8Array;
+  public finalize(): ArrayBuffer;
+  public finalize(encoding?: typeof uint8): ArrayBuffer | Uint8Array {
+    if (isBufferView(encoding)) {
+      switch (encoding.type) {
+        case 'Uint8':
+          return new Uint8Array(this._buffer, 0, this._offset);
+      }
+    }
     return this._buffer.slice(0, this._offset);
   }
 

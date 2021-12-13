@@ -312,4 +312,32 @@ describe('Model class', () => {
     const buffer = snapshotModel.toBuffer(snapshot);
     expect(snapshotModel.fromBuffer(buffer)).toStrictEqual(snapshot);
   });
+
+  it('Test', () => {
+    const playerSchema = new Schema({id: uint8});
+    const botSchema = new Schema({id: uint16});
+    const snapshotModel = Model.fromSchemaDefinition({
+      time: uint16,
+      data: {
+        players: [playerSchema],
+        bots: [botSchema],
+      },
+    });
+    const snapshot: ExtractSchemaObject<typeof snapshotModel> = {
+      time: 2000,
+      data: {
+        players: [{id: 4}, {id: 2}],
+        bots: [{id: 1000}, {id: 1234}],
+      },
+    };
+    const buffer = snapshotModel.toBuffer(snapshot, uint8);
+    console.log(buffer);
+		console.dir(snapshotModel.fromBuffer(buffer.buffer), {depth: null});
+    // const u8 = new Uint8Array(buffer);
+    // u8[0] = 4;
+    // console.log(u8.buffer);
+    // console.log(u8);
+    // console.log(u8.buffer);
+    // console.dir(snapshotModel.fromBuffer(u8.buffer), {depth: null});
+  });
 });

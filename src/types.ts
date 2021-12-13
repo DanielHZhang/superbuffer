@@ -55,6 +55,8 @@ export type SchemaObject<T> = {
     : never;
 };
 
+export type SchemaData<T> = SchemaObject<T> | SchemaObject<T>[];
+
 /**
  * Extract the SchemaDefinition type from a Model.
  */
