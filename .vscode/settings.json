@@ -1,63 +1,62 @@
 {
-  "[javascript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "[javascriptreact]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "[typescript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "[typescriptreact]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": true
-  },
-  "eslint.packageManager": "yarn",
-  "eslint.validate": [
-    "javascript",
-    "javascriptreact",
-    "typescript",
-    "typescriptreact"
-  ],
-  "files.watcherExclude": {
-    "**/.git/objects/**": true,
-    "**/.git/subtree-cache/**": true,
-    "**/.hg/store/**": true
-  },
-  "javascript.format.insertSpaceBeforeFunctionParenthesis": false,
-  "javascript.format.insertSpaceAfterFunctionKeywordForAnonymousFunctions": false,
-  "javascript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": false,
-  "javascript.format.semicolons": "insert",
-  "search.exclude": {
-    "**/node_modules": true,
-    "**/bower_components": true,
-    "**/*.code-search": true,
-    "yarn.lock": true,
-    "**/*.svg": true,
-  },
-  "typescript.autoClosingTags": true,
-  "typescript.format.enable": true,
-  "typescript.format.insertSpaceAfterCommaDelimiter": true,
-  "typescript.format.insertSpaceAfterConstructor": false,
-  "typescript.format.insertSpaceAfterKeywordsInControlFlowStatements": true,
-  "typescript.format.insertSpaceAfterFunctionKeywordForAnonymousFunctions": false,
-  "typescript.format.insertSpaceAfterOpeningAndBeforeClosingJsxExpressionBraces": false,
-  "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": false,
-  "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBrackets": false,
-  "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyParenthesis": false,
-  "typescript.format.insertSpaceAfterOpeningAndBeforeClosingTemplateStringBraces": false,
-  "typescript.format.insertSpaceAfterSemicolonInForStatements": true,
-  "typescript.format.insertSpaceAfterTypeAssertion": false,
-  "typescript.format.insertSpaceBeforeAndAfterBinaryOperators": true,
-  "typescript.format.insertSpaceBeforeFunctionParenthesis": false,
-  "typescript.format.placeOpenBraceOnNewLineForControlBlocks": false,
-  "typescript.format.placeOpenBraceOnNewLineForFunctions": false,
-  "typescript.format.semicolons": "insert",
-  "typescript.reportStyleChecksAsWarnings": true,
-  "typescript.preferences.importModuleSpecifier": "non-relative",
-  "typescript.preferences.quoteStyle": "single",
-  "typescript.preferences.useAliasesForRenames": false,
-  "typescript.tsdk": "node_modules\\typescript\\lib",
+	"[javascript]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
+	},
+	"[javascriptreact]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
+	},
+	"[typescript]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
+	},
+	"[typescriptreact]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
+	},
+	"editor.codeActionsOnSave": {
+		"source.fixAll.eslint": true
+	},
+	"eslint.packageManager": "yarn",
+	"eslint.validate": [
+		"javascript",
+		"javascriptreact",
+		"typescript",
+		"typescriptreact"
+	],
+	"files.watcherExclude": {
+		"**/.git/objects/**": true,
+		"**/.git/subtree-cache/**": true,
+		"**/.hg/store/**": true
+	},
+	"javascript.format.insertSpaceBeforeFunctionParenthesis": false,
+	"javascript.format.insertSpaceAfterFunctionKeywordForAnonymousFunctions": false,
+	"javascript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": false,
+	"javascript.format.semicolons": "insert",
+	"search.exclude": {
+		"**/node_modules": true,
+		"**/bower_components": true,
+		"**/*.code-search": true,
+		"yarn.lock": true,
+		"**/*.svg": true,
+	},
+	"typescript.autoClosingTags": true,
+	"typescript.format.enable": true,
+	"typescript.format.insertSpaceAfterCommaDelimiter": true,
+	"typescript.format.insertSpaceAfterConstructor": false,
+	"typescript.format.insertSpaceAfterKeywordsInControlFlowStatements": true,
+	"typescript.format.insertSpaceAfterFunctionKeywordForAnonymousFunctions": false,
+	"typescript.format.insertSpaceAfterOpeningAndBeforeClosingJsxExpressionBraces": false,
+	"typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": false,
+	"typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBrackets": false,
+	"typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyParenthesis": false,
+	"typescript.format.insertSpaceAfterOpeningAndBeforeClosingTemplateStringBraces": false,
+	"typescript.format.insertSpaceAfterSemicolonInForStatements": true,
+	"typescript.format.insertSpaceAfterTypeAssertion": false,
+	"typescript.format.insertSpaceBeforeAndAfterBinaryOperators": true,
+	"typescript.format.insertSpaceBeforeFunctionParenthesis": false,
+	"typescript.format.placeOpenBraceOnNewLineForControlBlocks": false,
+	"typescript.format.placeOpenBraceOnNewLineForFunctions": false,
+	"typescript.format.semicolons": "insert",
+	"typescript.reportStyleChecksAsWarnings": true,
+	"typescript.preferences.importModuleSpecifier": "non-relative",
+	"typescript.preferences.quoteStyle": "single",
+	"typescript.preferences.useAliasesForRenames": false,
 }
