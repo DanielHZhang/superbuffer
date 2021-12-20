@@ -4,6 +4,21 @@ import type {Schema} from './schema';
 /* eslint-disable @typescript-eslint/consistent-indexed-object-style */
 
 /**
+ * The string prefix name of a TypedArray.
+ */
+export type TypedArrayName =
+  | 'Uint8'
+  | 'Uint16'
+  | 'Uint32'
+  | 'Int8'
+  | 'Int16'
+  | 'Int32'
+  | 'Float32'
+  | 'Float64'
+  | 'BigInt64'
+  | 'BigUint64';
+
+/**
  * A type that can be serialized into ArrayBuffer.
  */
 export type Serializable = string | number | bigint | boolean;
