@@ -10,11 +10,13 @@ import {
   Model,
   Schema,
   string,
+  TypedArrayName,
   uint16,
   uint32,
   uint64,
   uint8,
 } from '../src';
+import {getTypedArrayByName} from '../src/utils';
 
 describe('Model class', () => {
   beforeEach(() => {
@@ -290,6 +292,11 @@ describe('Model class', () => {
     for (const result of results) {
       expect(result).toStrictEqual(object);
     }
+    expect(() => model.fromBuffer(buffer, Model.BUFFER_OBJECT)).toThrow();
+    expect(() => {
+      const nestedModal = new Model(nested2);
+      nestedModal.fromBuffer(buffer);
+    }).toThrow();
   });
 
   it('Should handle empty arrays', () => {
@@ -313,7 +320,7 @@ describe('Model class', () => {
     expect(snapshotModel.fromBuffer(buffer)).toStrictEqual(snapshot);
   });
 
-  it('Test', () => {
+  it('Should serialize directly to TypedArray', () => {
     const playerSchema = new Schema({id: uint8});
     const botSchema = new Schema({id: uint16});
     const snapshotModel = Model.fromSchemaDefinition({
@@ -330,14 +337,26 @@ describe('Model class', () => {
         bots: [{id: 1000}, {id: 1234}],
       },
     };
-    const buffer = snapshotModel.toBuffer(snapshot, uint8);
-    console.log(buffer);
-		console.dir(snapshotModel.fromBuffer(buffer.buffer), {depth: null});
-    // const u8 = new Uint8Array(buffer);
-    // u8[0] = 4;
-    // console.log(u8.buffer);
-    // console.log(u8);
-    // console.log(u8.buffer);
-    // console.dir(snapshotModel.fromBuffer(u8.buffer), {depth: null});
+    const names: TypedArrayName[] = [
+      'Uint8',
+      'Uint16',
+      'Uint32',
+      'Int8',
+      'Int16',
+      'Int32',
+      'Float32',
+      'Float64',
+      'BigInt64',
+      'BigUint64',
+    ];
+    // @ts-expect-error
+    expect(() => snapshotModel.toBuffer(snapshot, 'BadEncoding')).toThrow();
+    for (const name of names) {
+      const typedArray = snapshotModel.toBuffer(snapshot, name as 'Uint8'); // Cast to fix overload type mismatch
+      expect(ArrayBuffer.isView(typedArray)).toBe(true);
+      expect(typedArray instanceof getTypedArrayByName(name)).toBe(true);
+      const converted = snapshotModel.fromBuffer(typedArray);
+      expect(converted).toStrictEqual(snapshot);
+    }
   });
 });

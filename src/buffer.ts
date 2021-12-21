@@ -1,5 +1,4 @@
 import type {BufferView, Serializable} from './types';
-import {isBufferView} from './utils';
 import {uint8} from './views';
 
 /**
@@ -72,28 +71,13 @@ export class BufferManager {
   }
 
   /**
-   * Copy the contents of the internal ArrayBuffer (which may contain trailing empty sections)
-   * into a new ArrayBuffer with no empty bytes.
-   */
-  public finalize(encoding: typeof uint8): Uint8Array;
-  public finalize(): ArrayBuffer;
-  public finalize(encoding?: typeof uint8): ArrayBuffer | Uint8Array {
-    if (isBufferView(encoding)) {
-      switch (encoding.type) {
-        case 'Uint8':
-          return new Uint8Array(this._buffer, 0, this._offset);
-      }
-    }
-    return this._buffer.slice(0, this._offset);
-  }
-
-  /**
    * Append data to the internal DataView buffer.
    * @param bufferView BufferView to define the type appended.
    * @param data Data to be appended to the DataView.
    */
   public append(bufferView: BufferView, data: Serializable): void {
-    if (bufferView.type === 'String') {
+    const type = bufferView.type;
+    if (type === 'String') {
       this._dataView.setUint8(this._offset, 34); // Wrap in double quotes
       this._offset += uint8.bytes;
       const encoded = this._textEncoder.encode(data.toString());
@@ -103,22 +87,16 @@ export class BufferManager {
       this._offset += uint8.bytes;
       return;
     }
-    if (bufferView.type === 'Boolean') {
+    if (type === 'Boolean') {
       this._dataView.setUint8(this._offset, data === true ? 1 : 0);
     } else {
-      switch (bufferView.type) {
-        case 'BigInt64':
-        case 'BigUint64': {
-          data = typeof data === 'bigint' ? data : BigInt(data);
-          break;
-        }
-        case 'Float32':
-        case 'Float64': {
-          data = Number(Number(data).toPrecision(bufferView.type === 'Float32' ? 7 : 16));
-          break;
-        }
+      if (type === 'BigInt64' || type === 'BigUint64') {
+        data = typeof data === 'bigint' ? data : BigInt(data);
+      } else if (type === 'Float32' || type === 'Float64') {
+        const precision = type === 'Float32' ? 7 : 16;
+        data = Number(Number(data).toPrecision(precision));
       }
-      this._dataView[`set${bufferView.type}` as const](this._offset, data as never);
+      this._dataView[`set${type}` as const](this._offset, data as never);
     }
     this._offset += bufferView.bytes;
   }
