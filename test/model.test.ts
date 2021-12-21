@@ -101,7 +101,7 @@ describe('Model class', () => {
 
   it('Should deserialize float64', () => {
     const model = Model.fromSchemaDefinition({x: float64, y: float64});
-    const object = {x: -123.123456789101112, y: 987876.12352374893845};
+    const object = {x: -123.123456789101112, y: 376.9876543212345};
     const buffer = model.toBuffer(object);
     expect(model.fromBuffer(buffer)).toStrictEqual(truncate(object, 16));
   });
