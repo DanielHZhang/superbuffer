@@ -1,26 +1,46 @@
-# Workflow for creating a new release and publishing it to NPM.
-name: publish
+name: Publish
 
 on:
   release:
-    # Trigger the workflow when a release is published (skipping pre-releases)
-    types: [released]
+    types: [published]
+
+concurrency:
+  group: publish
+  cancel-in-progress: true
 
 jobs:
   publish:
-    name: Publish the release to NPM
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v3
         with:
-          # "ref": the branch to check out.
-          # "github.event.release.target_commitish": the target branch of the release
-          ref: ${{ github.event.release.target_commitish }}
-      - uses: actions/setup-node@v2
+          ref: main
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
-          node-version: lts/*
-          registry-url: https://registry.npmjs.org/
-      - uses: danielhzhang/npm-publish-release@main
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          node-version: 18
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile --ignore-engines
+
+      - name: Get version from tag
+        id: version
+        uses: actions/github-script@v6
+        with:
+          script: "require('./.github/scripts/get-version')({ core, tag: '${{ github.event.release.tag_name }}' })"
+
+      - name: Update version
+        run: yarn version --new-version ${{ steps.version.outputs.value }}
+
+      - name: Publish to NPM
+        run: yarn publish
+
+      - name: Push version changes
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add .
+          git commit -m "release: v${{ steps.version.outputs.value }} [skip ci]"
+          git push origin main
