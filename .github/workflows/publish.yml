@@ -34,16 +34,18 @@ jobs:
         with:
           script: "require('./.github/scripts/get-version')({ core, tag: '${{ github.event.release.tag_name }}' })"
 
+      - name: Set git user
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+
       - name: Update version
-        run: yarn version --new-version ${{ steps.version.outputs.value }}
+        run: |
+          yarn config set version-git-message "release: v${{ steps.version.outputs.value }} [skip ci]"
+          yarn version --new-version ${{ steps.version.outputs.value }}
 
       - name: Publish to NPM
         run: yarn publish
 
       - name: Push version changes
-        run: |
-          git config user.name github-actions
-          git config user.email github-actions@github.com
-          git add .
-          git commit -m "release: v${{ steps.version.outputs.value }} [skip ci]"
-          git push origin main
+        run: git push origin main
