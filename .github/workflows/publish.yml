@@ -46,6 +46,8 @@ jobs:
 
       - name: Publish to NPM
         run: yarn publish
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Push version changes
         run: git push origin main
