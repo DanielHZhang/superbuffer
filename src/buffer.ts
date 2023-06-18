@@ -106,7 +106,6 @@ export class BufferManager {
    * increment the offset if the read was successful.
    * @param bufferView BufferView to define the type read.
    */
-  public read(bufferView: BufferView): Serializable;
   public read(bufferView: BufferView<string>): string;
   public read(bufferView: BufferView<number>): number;
   public read(bufferView: BufferView<bigint>): bigint;
